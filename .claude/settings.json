@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(~/bidesk-holdout)",
+      "Read(~/bidesk-holdout/**)",
+      "Edit(~/bidesk-holdout)",
+      "Edit(~/bidesk-holdout/**)",
+      "Bash(*bidesk-holdout*)",
+      "Bash(*BIDESK_HOLDOUT_DIR*)",
+      "Bash(make eval-holdout*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ruff.sh",
+            "timeout": 30,
+            "statusMessage": "ruff"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/fast-tests.sh",
+            "timeout": 120,
+            "statusMessage": "make test"
+          }
+        ]
+      }
+    ]
+  }
+}

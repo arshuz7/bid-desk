@@ -64,3 +64,11 @@ The 14 changes made when the original plan was rescoped. Full reasons are in
 | --- | --- |
 | Ruff excludes `*.md` | Ruff 0.17 formats Python blocks inside Markdown, which would rewrite the docs and released prompt versions |
 | `make migrate`, `extract`, `eval` and `eval-holdout` exist from story 1.3 as stubs that exit 1 | CLAUDE.md lists them as defined after 1.3; each is implemented in its own story |
+
+## Harness (2026-10-10)
+
+| Decision | Why |
+| --- | --- |
+| Holdout deny rules: `Read` and `Edit` on `~/bidesk-holdout/**`, plus `Bash` rules matching `bidesk-holdout`, `BIDESK_HOLDOUT_DIR` and `make eval-holdout` | Read and Edit rules hold for file tools. Bash rules match command text only, so a glob like `~/bidesk-h*` slips past; sandboxing Bash with `sandbox.filesystem.denyRead` is the stronger option if that matters |
+| The Stop hook runs `make test` only when `.py`, `pyproject.toml` or `uv.lock` changed, and blocks at most once per stop | Keeps chat-only turns fast and can't loop on a test that won't pass |
+| The ruff hook runs `ruff check --fix` before `ruff format`, and exits 2 on errors it can't fix | Fixes like removing an import leave blank lines that only a later format cleans up; exit 2 shows Claude the error |
