@@ -8,12 +8,13 @@ are settled.
 
 | # | Question | Recommendation | Blocks |
 | --- | --- | --- | --- |
-| O1 | **Which version of a field do labels record when addenda change it?** 20 of the 25 tenders have addenda (49 addendum files). | Label the final state after all addenda, with evidence pointing at the addendum that set it. Ingest every file of a tender, not just the main solicitation. The reconciler stays a stretch goal; without it, wrong-version fields show up as eval failures, which is honest. Optionally keep a `history` list in labels so the reconciler can be scored later. | Holdout labelling (Week 2) |
 | O2 | **What does CI's smoke eval run on?** Every file's terms note says "private eval use only, not redistributed", so no real tender can be committed or used in CI. | Write 5 synthetic tenders for `data/smoke/`, clearly labelled synthetic, and run the CI gate on them. Run real dev evals by hand or nightly on your machine. | CI smoke eval (Week 5) |
 | O3 | **What does the public demo show?** The same terms note rules out hosting real tenders. | Ship 2–3 synthetic tenders in the demo, and let visitors upload their own PDF. Use real tenders only in the recorded video, if the terms allow that use. | Week 5 deploy, Week 6 video |
 | O4 | **Is Azure for Students credit available?** | With credit: Postgres B1ms (12 months free). Without: Neon free tier. Both use Container Apps for the app. | Week 5 deploy |
 | O5 | **Is the GitHub repo public now or from Week 3?** | Keep it private until Week 3. PDFs are gitignored, but check `data/manifest.csv` and early commits before going public. | Application (Week 3) |
-| O6 | **How are scanned pages handled?** 12 files across 3 tenders (26-0139, 26-0163, 26-0219) have no text layer. | Ingest them with `has_text = false`. Exclude them from the evidence in labels, and keep those tenders out of the holdout unless OCR gets built. | Holdout selection |
+
+O1 (addenda) and O6 (scanned pages) were resolved on 2026-10-10; see
+[Field design review](#field-design-review-2026-10-10).
 
 ## Revised plan (2026-10-08)
 
@@ -72,3 +73,31 @@ The 14 changes made when the original plan was rescoped. Full reasons are in
 | Holdout deny rules: `Read` and `Edit` on `~/bidesk-holdout/**`, plus `Bash` rules matching `bidesk-holdout`, `BIDESK_HOLDOUT_DIR` and `make eval-holdout` | Read and Edit rules hold for file tools. Bash rules match command text only, so a glob like `~/bidesk-h*` slips past; sandboxing Bash with `sandbox.filesystem.denyRead` is the stronger option if that matters |
 | The Stop hook runs `make test` only when `.py`, `pyproject.toml` or `uv.lock` changed, and blocks at most once per stop | Keeps chat-only turns fast and can't loop on a test that won't pass |
 | The ruff hook runs `ruff check --fix` before `ruff format`, and exits 2 on errors it can't fix | Fixes like removing an import leave blank lines that only a later format cleans up; exit 2 shows Claude the error |
+
+## Field design review (2026-10-10)
+
+Decided after a three-analyst design review on 2026-10-10. The schema is in
+[architecture.md](architecture.md#field-schema), the label format and scoring in
+[evals.md](evals.md), and the labelling rules in [labelling-guide.md](labelling-guide.md).
+
+| Decision | Why |
+| --- | --- |
+| **O1 resolved:** labels record the final state after all addenda; `history` is required when an addendum changed the field; extraction uses reconciler-lite (chunks carry role, addendum number and issue date, and later addenda supersede) | 20 of 25 tenders have addenda; history makes the addendum-changed slice measurable, and reconciler-lite is cheap to try and measure |
+| **O6 resolved:** the 3 tenders with scanned files (26-0139, 26-0163, 26-0219) and the 1,208-page Wood Buffalo tender go to Spare, unless the story 2.0 check shows the scanned files are only drawings | Their text can't be extracted without OCR, and one 1,208-page tender would dominate an 8-tender holdout |
+| `est_value` is a `Money` range (`low`, `high`) | A stated band must not be scored as an invented answer |
+| `EvalCriteria` has a `basis` | Most Parks Canada ITTs award to the lowest compliant bid and have no weighted criteria |
+| `Criterion.weight` is optional, with unit `pass_fail` | Pass/fail criteria have no weight |
+| Labels can list `accept` alternates | Bilingual titles and short reference numbers are both correct, and alternates keep scoring deterministic |
+| One deciding source per label field | Citation is scored by grounding plus a correct value, not by matching the label's page; saves 1–2 h of labelling |
+| Workers return a separate `WorkerField` model | The model physically cannot set `confidence` or `signals` |
+| Labellers and retrieval use the same document scope (solicitation, addenda, appendices, Division 01 specs) | Specs often state COR and bonding, so excluding them would score correct answers as wrong |
+| Grounding skips the literal value check for derived values | Computed dates ("extended by one week") never appear verbatim in a quote |
+| Organization security clearance counts as a certification | It decides whether a company can bid at all |
+| `documents.sha256` is unique per tender, not globally | A standard document can recur across tenders, and a global constraint would reject the second copy at ingest. The manifest has 0 such cases today; this is a guard |
+| Freeze manifest file names before Week 2 (story 1.8) | Labels key on file names |
+| Document roles are `solicitation`, `addendum`, `appendix`, `specifications`, `drawings` and `reference`; `scanned` is a column, not a role | Document scope is driven by role, and the old `other` and `scanned` roles couldn't say what is in scope. A combined package that is one PDF is tagged `solicitation` and indexed whole |
+| `documents.issued_on`, from the manifest | Reconciler-lite prefixes each chunk with its issue date; `downloaded_on` is not the issue date |
+| Contact directories and information-session slides are `reference`, so out of scope | Keeps personal contact details out of retrieval and Ask |
+| Gate 1 is the dev baseline only | The holdout runs at most twice; spending a run on the baseline adds nothing |
+| Holdout run 1 (story 5.6) scores baseline, workers and workers plus verifier | Gives the before-and-after on unseen tenders without an extra holdout run |
+| Holdout tender IDs stay out of the repo (DEVLOG says H1–H8), and a gitignored `.claude/settings.local.json` denies agents the holdout tenders' `data/raw/` folders; holdout tenders are ingested only for `make eval-holdout` | DEVLOG.md is committed, and knowing the IDs would let an agent read the holdout PDFs while tuning. The deny rules don't cover database rows, hence late ingest |
