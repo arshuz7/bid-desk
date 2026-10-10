@@ -183,20 +183,7 @@ Collect 25–30 construction tenders you are allowed to download and use, and ha
 
 Report six numbers on the 12 dev and 8 holdout tenders, always as counts and percentages (e.g. 71/80, 89%); set targets now so you know when to stop tuning.
 
-**How each field is scored**
-
-| Field | Value type | Counted correct when |
-| --- | --- | --- |
-| Project title | Text | Normalized match (case, punctuation, whitespace) |
-| Issuing organization | Text | Normalized match or a listed alias |
-| Tender/reference number | ID | Exact match after stripping spaces |
-| Closing date and time | Date-time | Same instant after parsing, Mountain Time |
-| Site meeting | Date + mandatory flag | Date and flag both match |
-| Project location | Text | Normalized match, or an LLM judge accepts the paraphrase |
-| Estimated value or budget | Number or null | Equal within $1; null only when the label is null |
-| Mandatory certifications | List | Same set (report F1 alongside) |
-| Bonding/insurance | List of type + amount | Same set of type-amount pairs |
-| Evaluation criteria with weights | List of criterion + weight | Same criteria (judge for wording) and exact weights |
+**How each field is scored** is defined in [evals.md](evals.md#how-each-field-is-scored).
 
 **The six metrics**
 
