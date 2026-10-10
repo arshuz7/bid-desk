@@ -57,3 +57,10 @@ The 14 changes made when the original plan was rescoped. Full reasons are in
 | Code under `src/bidesk/`, prompts inside the package, pipeline code in `pipeline/` | Tests run against the installed package; prompts ship in the image; "agents" stays unambiguous |
 | Path-specific rules live in `.claude/rules/`, not per-folder CLAUDE.md files | One mechanism, so rules don't drift between two places |
 | Labels in `data/labels/{drafts,dev}/`; holdout labels in `~/bidesk-holdout/`, read only through `BIDESK_HOLDOUT_DIR` | Matches the plan; no other code knows the holdout path |
+
+## Scaffold (2026-10-10)
+
+| Decision | Why |
+| --- | --- |
+| Ruff excludes `*.md` | Ruff 0.17 formats Python blocks inside Markdown, which would rewrite the docs and released prompt versions |
+| `make migrate`, `extract`, `eval` and `eval-holdout` exist from story 1.3 as stubs that exit 1 | CLAUDE.md lists them as defined after 1.3; each is implemented in its own story |
