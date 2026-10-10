@@ -5,8 +5,8 @@ story has an exit check you can pass or fail. If a week slips, cut a stretch goa
 or the governance layer. Work one story per Claude Code session, starting in Plan Mode.
 
 **Gates**
-1. **Baseline (end of Week 2, Oct 21):** dev and holdout accuracy recorded as counts in
-   EVALS.md.
+1. **Baseline (end of Week 2, Oct 21):** dev baseline accuracy recorded as counts in EVALS.md.
+   The holdout waits until Week 5.
 2. **Application (end of Week 3, Oct 28):** submitted with the repo, one recorded session, one
    well-described PR and the EVALS.md table so far.
 3. **Live demo (end of Week 5, Nov 11):** a URL a stranger can use.
@@ -19,20 +19,21 @@ or the governance layer. Work one story per Claude Code session, starting in Pla
 | 1.2 | ✅ Planning docs in the repo | `CLAUDE.md` and `docs/` committed |
 | 1.3 | Scaffold: `pyproject.toml` (uv), ruff, pytest, `Makefile`, `docker-compose.yml` with pgvector, `.env.example`, GitHub Actions for lint and test | `make test` passes locally and in CI on an empty test |
 | 1.4 | Harness basics: `.claude/settings.json` (ruff hook after edits, fast tests when a turn ends, deny rules for the holdout path), `.claude/rules/prompts.md` and `governance.md` | Editing a `.py` file runs ruff; asking Claude Code to read `~/bidesk-holdout/` is refused |
-| 1.5 | Lock the field schema: `schemas/fields.py` (`FIELD_SPECS`, `TenderFields`, `ExtractedField`), `schemas/labels.py`, JSON Schema export, label validator | The example label in [evals.md](evals.md) validates; tests reject FOUND without evidence and NOT_STATED with a value |
+| 1.5 | Lock the field schema from [architecture.md](architecture.md#field-schema): `schemas/fields.py` (`FIELD_SPECS`, `WorkerField`, `ExtractedField`, `Money`, `EvalCriteria`, `TenderFields`), `schemas/labels.py`, all the listed validators, JSON Schema export, label validator | The full example label in [evals.md](evals.md#label-format) validates; tests reject FOUND without evidence, NOT_STATED with a value, an empty FOUND list, `low > high`, a naive datetime, `weighted` with no criteria, and a FAILED label; `"2026-11-05"` and a full datetime round-trip through `AwareDatetime \| date`; the JSON Schema export is tested |
 | 1.6 | `tracing.py` and `llm.py`: spans, tokens, cost, latency, $2/day cap, Claude and Voyage calls | With a fake sink, spans from `asyncio.gather` nest under their parent; a call over the cap raises before reaching the API |
 | 1.7 | `sql/0001_init.sql` and `db.py` | `make db-up && make migrate` creates every table and view in [architecture.md](architecture.md#data-model) |
-| 1.8 | Manifest clean-up: mark the main solicitation in the 4 municipal tenders that have none, and add `addendum_no` | A check script finds at least one `solicitation` row per tender |
-| 1.9 | `ingest.py`: manifest → documents → pages → chunks → embeddings, all files of a tender | `python -m bidesk.ingest --tender <id>` indexes a tender; a test using a PDF generated in the test proves file and page numbers survive; scanned pages are stored with `has_text = false` |
+| 1.8 | Manifest clean-up: mark the main solicitation in the 4 municipal tenders that have none; re-tag `role` to the new set (solicitation, addendum, appendix, specifications, drawings, reference); add `addendum_no` and `issued_on`; freeze file names | A check script finds at least one `solicitation` row per tender, only known roles, and `addendum_no` on every addendum. File names don't change after this story |
+| 1.9 | `ingest.py`: manifest → documents → pages for every file; chunks and embeddings for in-scope roles only ([architecture.md](architecture.md#retrieval)) | `python -m bidesk.ingest --tender <id>` indexes a tender; a test using a PDF generated in the test proves file and page numbers survive; scanned pages are stored with `has_text = false` |
 | 1.10 | Start DEVLOG.md (estimate before each task, actual after) and record the first Claude Code session | Session file saved; DEVLOG has rows for 1.3–1.9 |
 
 **Deliverable:** one tender fully indexed, and the schema locked before labelling starts.
 
-## Week 2 — Labels and baseline (Oct 15–21, 14–16 h, the heaviest week)
+## Week 2 — Labels and baseline (Oct 15–21, 14.5–16.5 h, the heaviest week)
 
 | # | Story | Exit check |
 | --- | --- | --- |
-| 2.1 | Settle decisions O1 (addenda) and O6 (scanned pages), then choose the 8 holdout tenders (see [evals.md](evals.md#splits)) | Decisions logged; holdout IDs in DEVLOG.md |
+| 2.0 | Finalize [labelling-guide.md](labelling-guide.md); spend 15 minutes checking what the 12 scanned files are (role and content) | Guide committed; the scanned-file outcome logged in decisions.md |
+| 2.1 | Choose the 8 holdout tenders using the eligibility rules in [evals.md](evals.md#splits); add deny rules for their `data/raw/` folders to `.claude/settings.local.json` | IDs exist only outside the repo (DEVLOG.md says H1–H8); a fresh session can't read a holdout tender's PDF |
 | 2.2 | Hand-label the 8 holdout tenders in `~/bidesk-holdout/`, plus 3 Ask questions each, before any extraction prompt exists | 8 files validate; minutes per tender logged |
 | 2.3 | `tender-labeller` subagent (cheap model, writes only to `data/labels/drafts/`); draft 12 dev labels and check each value against its page; 3 Ask questions per tender | 12 files in `data/labels/dev/` validate in CI |
 | 2.4 | Single-call baseline extractor on Haiku 5.5 (`pipeline/baseline.py`, prompt `baseline/v1.md`) | `make extract TENDER=<id>` writes `extracted_fields` rows, each linked to a span |
@@ -75,7 +76,7 @@ checklist.
 | 5.3 | Demo password, rate limit, upload size cap; spend cap checked in production | An over-cap call is refused in production logs |
 | 5.4 | CI: smoke eval per PR with the measured gate; `REVIEW.md` and the Claude PR review action; `claude -p` eval summary as a PR comment | A PR shows the review and the eval comment |
 | 5.5 | `governance-reviewer` subagent (read-only, strongest model), run on open PRs | At least one finding recorded in DEVLOG.md |
-| 5.6 | Holdout run 1 and `MODEL_CARD.md` | **Gate 3:** live URL, holdout counts next to dev counts |
+| 5.6 | Holdout run 1, scoring baseline, workers and workers plus verifier in one sitting; `MODEL_CARD.md` | **Gate 3:** live URL, holdout counts next to dev counts for all three pipelines |
 
 ## Week 6 — Package and follow up (Nov 12–18, 10–13 h)
 

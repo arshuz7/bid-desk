@@ -10,7 +10,7 @@ How Bid Desk is built, and the rules every change must keep. Decisions and their
 2. **No value without evidence.** A field counts only if its quote passes the deterministic check on
    the cited file and page. What the model says about its own answer counts for nothing.
 3. **Found, not stated and failed are three different states** everywhere: schemas, database,
-   labels, scorers and UI. A bare `null` is never a valid field.
+   labels, scorers and UI. A bare `null` is never a valid field. Labels can never be `failed`.
 4. **`FIELD_SPECS` is the single source of truth for fields.** Prompts, workers, storage, labels
    and scorers are all driven by it. Adding a field means adding one entry, then following the
    `add-extraction-field` skill.
@@ -93,7 +93,7 @@ document too.
 | Table | Key columns |
 | --- | --- |
 | `tenders` | `id` text PK (the manifest `tender_id`), title, entity, kind |
-| `documents` | `id`, `tender_id` FK, `file`, `role` (solicitation, addendum, other, specifications, scanned), `addendum_no`, `sha256` UNIQUE, `page_count`, `scanned` |
+| `documents` | `id`, `tender_id` FK, `file`, `role` (solicitation, addendum, appendix, specifications, drawings, reference), `addendum_no`, `issued_on`, `sha256`, `page_count`, `scanned`; UNIQUE (`tender_id`, `sha256`) |
 | `pages` | (`document_id`, `page_no`) PK, `printed_label`, `text`, `has_text`. Page text is stored so grounding and highlighting never re-parse the PDF |
 | `chunks` | `id`, `document_id` FK, `chunk_index`, `page_start`, `page_end`, `text`, `tsv` (generated, `simple` config), `embedding vector(1024)`, `embedding_model`, `chunker_version` |
 | `runs` | `id`, `tender_id` FK, `kind` (extract, ask, draft), `pipeline` (baseline, workers, workers_verifier), `git_sha`, `config` jsonb, `status`, `started_at`, `finished_at`, `cost_usd`, `eval_run_id` FK null |
@@ -135,50 +135,67 @@ class Status(StrEnum):
     FAILED = "failed"
 
 class Evidence(BaseModel):
-    file: str        # file name as in data/manifest.csv
-    page: int        # 1-based index within that PDF
-    quote: str       # verbatim span from the page
+    file: str          # manifest file name
+    page: int          # 1-based within that PDF
+    quote: str         # verbatim span from the page
 
-class ExtractedField[T](BaseModel):
+class WorkerField[T](BaseModel):          # what the model returns; it cannot set confidence
     status: Status
     value: T | None = None
     evidence: list[Evidence] = []
-    confidence: float | None = None      # 0-1, set by governance, never by the model
-    signals: dict[str, bool] = {}        # grounded, parsed, agreed
-    error: str | None = None             # only when FAILED
-    # validator: FOUND needs a value and at least one evidence item;
-    # NOT_STATED and FAILED need value None
+
+class ExtractedField[T](WorkerField[T]):  # what governance stores
+    confidence: float | None = None       # 0-1
+    signals: dict[str, bool] = {}         # grounded, parsed, agreed
+    error: str | None = None              # only when FAILED
 
 class SiteMeeting(BaseModel):
-    when: datetime | date                # tz-aware America/Edmonton when a time is given
+    when: AwareDatetime | date
     mandatory: bool | None
+
+class Money(BaseModel):
+    low: Decimal
+    high: Decimal                         # low == high for a single figure
 
 class BondingItem(BaseModel):
     kind: Literal["bid_bond", "bid_deposit", "performance_bond", "labour_material_bond",
                   "cgl_insurance", "auto_insurance", "builders_risk", "other"]
-    amount: Decimal | None
+    amount: Decimal | None                # None for tiered formulas
     unit: Literal["CAD", "percent"] | None
 
 class Criterion(BaseModel):
     name: str
-    weight: Decimal
-    unit: Literal["percent", "points"]
+    weight: Decimal | None                # None for pass/fail
+    unit: Literal["percent", "points", "pass_fail"]
+
+class EvalCriteria(BaseModel):
+    basis: Literal["lowest_compliant_price", "weighted", "pass_fail_then_price", "other"]
+    criteria: list[Criterion] = []        # top level only; empty for lowest price
 
 class TenderFields(BaseModel):
-    project_title: ExtractedField[str]
-    issuing_org: ExtractedField[str]
-    reference_no: ExtractedField[str]
-    closing_at: ExtractedField[AwareDatetime]
-    site_meeting: ExtractedField[SiteMeeting]
-    location: ExtractedField[str]
-    est_value: ExtractedField[Decimal]
-    certifications: ExtractedField[list[str]]
+    project_title:     ExtractedField[str]
+    issuing_org:       ExtractedField[str]
+    reference_no:      ExtractedField[str]
+    closing_at:        ExtractedField[AwareDatetime]
+    site_meeting:      ExtractedField[SiteMeeting]
+    location:          ExtractedField[str]
+    est_value:         ExtractedField[Money]
+    certifications:    ExtractedField[list[str]]
     bonding_insurance: ExtractedField[list[BondingItem]]
-    eval_criteria: ExtractedField[list[Criterion]]
+    eval_criteria:     ExtractedField[EvalCriteria]
 ```
 
-The model never fills `confidence` or `signals`. Workers return value, status and evidence;
-governance adds the rest.
+Validators:
+- FOUND needs a value and at least one evidence item. NOT_STATED and FAILED need value `None`.
+- A FOUND list is never empty.
+- `Money`: `low <= high`.
+- All datetimes are timezone-aware.
+- `basis == "weighted"` requires non-empty `criteria`.
+- Labels can never be FAILED (the label models are in [evals.md](evals.md#label-format)).
+
+Workers return `WorkerField`, which has no `confidence`, `signals` or `error`, so the model
+cannot set them. Governance builds the `ExtractedField` from the worker output and its own
+checks.
 
 ## Retrieval
 
@@ -191,6 +208,16 @@ governance adds the rest.
   gets extra weight. Tune this against the Ask eval.
 - Scanned pages with no text layer are stored with `has_text = false` and are never retrieved.
   OCR is a stretch goal.
+- **Document scope.** Labellers search, and retrieval indexes, the same document roles:
+  `solicitation`, `addendum`, `appendix` and `specifications` (Division 01 where the specs are
+  a separate file). `drawings` and `reference` files are stored as pages, for highlighting, but
+  never chunked or embedded. Scope is driven by `documents.role`, so labels and extraction
+  can't drift apart. A combined package that is one PDF is tagged `solicitation` and indexed
+  whole, and labellers search the whole file too.
+- **Reconciler-lite.** Each retrieved chunk is prefixed with its document role, addendum number
+  and issue date, and chunks are ordered by `addendum_no`. The worker prompts say that later
+  addenda supersede earlier text. Its effect is measured, not assumed: log it in EVALS.md
+  using the addendum-changed slice. The full reconciler stays a stretch goal.
 
 ## Runtime and deployment
 

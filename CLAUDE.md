@@ -8,6 +8,7 @@ Read before planning any change:
 - `docs/architecture.md`: principles, module layering, data model, field schema
 - `docs/roadmap.md`: stories and exit checks; work one story at a time
 - `docs/evals.md`: splits, label format, scorers, metrics
+- `docs/labelling-guide.md`: how each field is labelled; extraction follows the same rules
 - `docs/decisions.md`: why things are the way they are, and the open questions
 - `docs/project-plan.md`: the full plan, for background
 
@@ -32,8 +33,11 @@ Don't relitigate these; propose a change in `docs/decisions.md` instead.
 - Voyage `voyage-4` embeddings, `vector(1024)`. Hybrid retrieval: vector plus `simple` full text,
   merged by reciprocal rank fusion.
 - Plain async Python orchestration. No LangGraph, LangChain or Agent SDK in the pipeline.
-- Field states are `found`, `not_stated` and `failed`. Evidence is a list of `{file, page, quote}`.
+- Field states are `found`, `not_stated` and `failed`; labels are never `failed`. Extraction
+  evidence is a list of `{file, page, quote}`; a label cites one deciding `{file, page}`.
+  Workers return `WorkerField`, which has no confidence; governance builds `ExtractedField`.
   `FIELD_SPECS` in `schemas/fields.py` drives prompts, workers, storage, labels and scorers.
+- Labellers and retrieval use the same document scope, driven by `documents.role`.
 
 ## Layering
 
