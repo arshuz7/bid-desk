@@ -16,5 +16,6 @@ paths:
 - The model returns status, value and evidence (`file`, `page`, verbatim `quote`) only. It never
   sets `confidence` or `signals`.
 - A prompt never asks the model to submit, sign or price a bid, or to make a go/no-go call.
-- A prompt never asks for procurement contacts' names, emails or phone numbers.
+- The only contact a prompt asks for is `tender_contact`: who the tender says to send questions
+  to. Nothing else about people. The Ask prompt may quote that contact, with a citation.
 - Never put holdout tenders, holdout labels or their contents in a prompt or few-shot example.

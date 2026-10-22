@@ -15,7 +15,9 @@ Read before planning any change:
 ## Never
 
 - Submit, sign or price a bid, or make a go/no-go call. Not in code, prompts or UI.
-- Extract, store or display procurement contacts' names, emails or phone numbers.
+- Collect procurement contacts across tenders (no contacts table, export or cross-tender
+  search), or put real contact details in committed files. `tender_contact` is shown per
+  tender with a citation, checked by grounding, and never labelled.
 - Read, list or reference the holdout (`~/bidesk-holdout/` or `$BIDESK_HOLDOUT_DIR`). Only
   `make eval-holdout` touches it, and only the developer runs it.
 - Commit anything from `data/raw/`, or any tender PDF. The terms allow private eval use only.

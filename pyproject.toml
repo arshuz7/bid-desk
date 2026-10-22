@@ -5,6 +5,7 @@ description = "A governed AI pipeline over Alberta construction tenders"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "anthropic>=2.1.0",
     "pydantic>=2.14",
 ]
 

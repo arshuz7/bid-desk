@@ -19,8 +19,9 @@ How Bid Desk is built, and the rules every change must keep. Decisions and their
 6. **Deterministic checks run before LLM checks.** After them comes one bounded retry, then a
    human. Cost can't run away.
 7. **Humans decide.** Draft uses only accepted or human-approved fields. The system never submits,
-   signs or prices a bid, and never makes a go/no-go call. It never extracts or shows procurement
-   contacts' details. Agents never see the holdout.
+   signs or prices a bid, and never makes a go/no-go call. A tender's contact is shown for that tender
+   only, with a citation (`tender_contact`, grounded but never labelled); contacts are never
+   collected across tenders. Agents never see the holdout.
 
 ## Stack
 
@@ -31,7 +32,7 @@ How Bid Desk is built, and the rules every change must keep. Decisions and their
 | UI | Streamlit as a thin client that calls the API over HTTP and imports only `bidesk.schemas` |
 | PDF parsing | PyMuPDF. Page numbers are the 1-based index within each PDF file |
 | LLM | Claude through `llm.py`: Haiku 5.5 for workers and the agreement pass, Sonnet 5.5 for the verifier's judge and Ask |
-| Structured output | Tool calling with Pydantic schemas |
+| Structured output | Claude structured outputs (`output_config.format`, schema from the Pydantic model), validated again by our own models in `llm.py` |
 | Embeddings | Voyage `voyage-4`, 1024 dimensions, `input_type="document"` for chunks and `"query"` for questions, called through `llm.py` |
 | Retrieval | Hybrid: pgvector cosine similarity plus Postgres full-text search, merged with reciprocal rank fusion |
 | Orchestration | Plain async Python (`asyncio.gather` for workers). No LangGraph or Agent SDK in the pipeline |

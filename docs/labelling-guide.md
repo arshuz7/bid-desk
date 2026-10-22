@@ -28,7 +28,8 @@ All examples below are synthetic.
 - **A reissued solicitation replaces the original.** Cite the reissue.
 - **Scanned pages still count.** Never label a field `not_stated` because its only source is a
   scanned page. Label what the page says and cite it.
-- **No contacts.** Never record procurement contacts' names, emails or phone numbers, in any
+- **No contacts.** `tender_contact` is extracted but not labelled; grounding checks it. Never
+  record procurement contacts' names, emails or phone numbers, in any
   field or note.
 
 ## Per field
