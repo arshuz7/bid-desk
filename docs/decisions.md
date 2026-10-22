@@ -114,3 +114,25 @@ Decided after a three-analyst design review on 2026-10-10. The schema is in
 | `labelled_by` is `hand` or `labeller_checked` | Records which labels started as a model draft |
 | The label validator checks evidence and history files, page counts, `kind` and `addenda_count` against the manifest; "history required when an addendum changed the field" is not machine-checked | An addendum can add a field without replacing a value, so citing an addendum doesn't imply history |
 | `import-linter` runs in `make lint`, with layers not yet built marked optional | `schemas` and `evals` now exist, so the layering in CLAUDE.md is enforced from the first two layers |
+
+## Model client (2026-10-21)
+
+| Decision | Why |
+| --- | --- |
+| Structured output uses `messages.create` with `output_config.format` (schema from `anthropic.transform_schema`), then our own `model_validate_json`; not forced tool calls, and not `messages.parse` | Forced `tool_choice` returns a 400 on Sonnet 5.5. `messages.parse` raises after the call when validation fails, which loses the usage and raw output we need for cost and debugging |
+| `effort` is a parameter of `llm.extract`; story 2.4 picks it by measurement | Haiku 5.5 thinks by default at `medium` effort, and thinking tokens are billed as output |
+| Prices in `llm.py`: Haiku 5.5 $0.10/$0.50 per M (prompts over 100k tokens $0.50/$2.50), Sonnet 5.5 $2/$10, Voyage `voyage-4` $0.06; cache writes 1.25x, reads 0.1x | Cost per span comes from the response's token usage, so it's exact, not estimated |
+| The cap check estimates the worst case (prompt at 2 characters per token, plus the full `max_tokens` of output) before every call; a refused call is still logged with status `cap_exceeded` | Over-estimating keeps the $2/day cap hard; the log shows when the cap bit |
+| Failed calls (API error, refusal, `max_tokens` cut-off, invalid output) raise `LLMCallFailed`, and their span keeps the cost and raw output | The pipeline turns it into a FAILED field; a failed call still costs money and counts toward the cap |
+| The span sink is async with `emit()` and `spent_today()` (Edmonton day); with no sink registered, no span opens and no call is made | Spend has to be read from wherever spans are stored, and nothing may run unlogged |
+| Span and run IDs are UUIDs generated in Python | No database round trip to open a span; story 1.7 uses UUID keys for `runs` and `spans` |
+| Voyage `truncation=False` | An over-long chunk should fail loudly, not be embedded half-read |
+| Voyage is called with one `httpx2` POST, not the `voyageai` SDK | The SDK pulls in LangChain, numpy, pillow and tokenizers (the virtualenv went from 82 MB to 170 MB); `httpx2` already comes with the Anthropic SDK |
+| No `config.py` yet; the cap is passed to `LLM(...)` | Nothing else needs configuration until the database URL in 1.7 |
+| A test fails if any module other than `llm.py` imports `anthropic` or `voyageai`, or names the Voyage API URL | Enforces the CLAUDE.md rule for files that don't exist yet |
+
+## Procurement contacts (2026-10-21)
+
+| Decision | Why |
+| --- | --- |
+| **O7 resolved (option B4):** add `tender_contact`, the person or mailbox the tender says to send questions to, as an 11th extracted field, shown per tender with a citation. It is checked by grounding (the email or phone must appear on the cited page) but **not labelled or scored**, so labels and accuracy stay on the 10 fields. Tender text is kept as it is, with no redaction. Contacts are never collected across tenders or stored in committed files | Bidders need the contracting authority. Grounding is the right check for copying a contact off a page, so a made-up email can't get through. Not labelling it costs no labelling time and keeps real contact details out of the dev labels, which are committed to a repo that goes public. It can become a scored field after Oct 28 by adding it to labels kept out of git |

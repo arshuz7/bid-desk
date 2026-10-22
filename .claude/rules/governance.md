@@ -19,4 +19,6 @@ paths:
 - Deterministic checks (grounding against the stored page text) run before LLM checks. Then one
   bounded retry, then the human review queue. Nothing loops on model output.
 - Migrations are new numbered files in `sql/`. Never edit one that is on `main`.
-- Spans and logs never contain secrets or procurement contacts' details.
+- Spans and logs never contain secrets. Prompt text in a span may include a tender's own
+  contact details, because it's the tender's public text; never log contacts gathered across
+  tenders.

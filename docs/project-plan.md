@@ -218,7 +218,7 @@ Most portfolio agents can answer questions, few can show what they did, how sure
 
 **6. Hard limits.** The agent never decides go/no-go, never prices work, and never submits anything. These go in the system prompts and the model card, with a test that asking it to submit a bid gets a refusal.
 
-**7. Model card (MODEL_CARD.md, one page).** Intended use, users, data sources, dev and holdout results as counts, known failure modes with real examples, what humans must check, cost per tender, and data handling: public documents only; contact details in tenders are not extracted or shown; the audit log stays private to the deployment.
+**7. Model card (MODEL_CARD.md, one page).** Intended use, users, data sources, dev and holdout results as counts, known failure modes with real examples, what humans must check, cost per tender, and data handling: public documents only; a tender's contact is shown for that tender with a citation, but never collected across tenders or stored in committed files; the audit log stays private to the deployment.
 
 ## Claude Code harness
 
