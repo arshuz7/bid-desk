@@ -1,0 +1,948 @@
+{
+  "$defs": {
+    "BondingItem": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "bid_bond",
+            "bid_deposit",
+            "performance_bond",
+            "labour_material_bond",
+            "cgl_insurance",
+            "auto_insurance",
+            "builders_risk",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Amount"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "enum": [
+                "CAD",
+                "percent"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "kind",
+        "amount",
+        "unit"
+      ],
+      "title": "BondingItem",
+      "type": "object"
+    },
+    "Criterion": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "weight": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Weight"
+        },
+        "unit": {
+          "enum": [
+            "percent",
+            "points",
+            "pass_fail"
+          ],
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "weight",
+        "unit"
+      ],
+      "title": "Criterion",
+      "type": "object"
+    },
+    "EvalCriteria": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "enum": [
+            "lowest_compliant_price",
+            "weighted",
+            "pass_fail_then_price",
+            "other"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "criteria": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Criterion"
+          },
+          "title": "Criteria",
+          "type": "array"
+        }
+      },
+      "required": [
+        "basis"
+      ],
+      "title": "EvalCriteria",
+      "type": "object"
+    },
+    "HistoryItem_AwareDatetime_": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "format": "date-time",
+          "title": "Value",
+          "type": "string"
+        },
+        "file": {
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "file"
+      ],
+      "title": "HistoryItem[AwareDatetime]",
+      "type": "object"
+    },
+    "HistoryItem_EvalCriteria_": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/EvalCriteria"
+        },
+        "file": {
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "file"
+      ],
+      "title": "HistoryItem[EvalCriteria]",
+      "type": "object"
+    },
+    "HistoryItem_Money_": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/Money"
+        },
+        "file": {
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "file"
+      ],
+      "title": "HistoryItem[Money]",
+      "type": "object"
+    },
+    "HistoryItem_SiteMeeting_": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/SiteMeeting"
+        },
+        "file": {
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "file"
+      ],
+      "title": "HistoryItem[SiteMeeting]",
+      "type": "object"
+    },
+    "HistoryItem_list_BondingItem__": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "items": {
+            "$ref": "#/$defs/BondingItem"
+          },
+          "title": "Value",
+          "type": "array"
+        },
+        "file": {
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "file"
+      ],
+      "title": "HistoryItem[list[BondingItem]]",
+      "type": "object"
+    },
+    "HistoryItem_list_str__": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Value",
+          "type": "array"
+        },
+        "file": {
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "file"
+      ],
+      "title": "HistoryItem[list[str]]",
+      "type": "object"
+    },
+    "HistoryItem_str_": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "title": "Value",
+          "type": "string"
+        },
+        "file": {
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "file"
+      ],
+      "title": "HistoryItem[str]",
+      "type": "object"
+    },
+    "LabelEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        },
+        "page": {
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file",
+        "page"
+      ],
+      "title": "LabelEvidence",
+      "type": "object"
+    },
+    "LabelField_AwareDatetime_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "not_stated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/LabelEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "accept": {
+          "default": [],
+          "items": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": "Accept",
+          "type": "array"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "history": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HistoryItem_AwareDatetime_"
+          },
+          "title": "History",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "LabelField[AwareDatetime]",
+      "type": "object"
+    },
+    "LabelField_EvalCriteria_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "not_stated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalCriteria"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/LabelEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "accept": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EvalCriteria"
+          },
+          "title": "Accept",
+          "type": "array"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "history": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HistoryItem_EvalCriteria_"
+          },
+          "title": "History",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "LabelField[EvalCriteria]",
+      "type": "object"
+    },
+    "LabelField_Money_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "not_stated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Money"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/LabelEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "accept": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Money"
+          },
+          "title": "Accept",
+          "type": "array"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "history": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HistoryItem_Money_"
+          },
+          "title": "History",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "LabelField[Money]",
+      "type": "object"
+    },
+    "LabelField_SiteMeeting_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "not_stated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SiteMeeting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/LabelEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "accept": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SiteMeeting"
+          },
+          "title": "Accept",
+          "type": "array"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "history": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HistoryItem_SiteMeeting_"
+          },
+          "title": "History",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "LabelField[SiteMeeting]",
+      "type": "object"
+    },
+    "LabelField_list_BondingItem__": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "not_stated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/BondingItem"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/LabelEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "accept": {
+          "default": [],
+          "items": {
+            "items": {
+              "$ref": "#/$defs/BondingItem"
+            },
+            "type": "array"
+          },
+          "title": "Accept",
+          "type": "array"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "history": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HistoryItem_list_BondingItem__"
+          },
+          "title": "History",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "LabelField[list[BondingItem]]",
+      "type": "object"
+    },
+    "LabelField_list_str__": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "not_stated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/LabelEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "accept": {
+          "default": [],
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Accept",
+          "type": "array"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "history": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HistoryItem_list_str__"
+          },
+          "title": "History",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "LabelField[list[str]]",
+      "type": "object"
+    },
+    "LabelField_str_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "not_stated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/LabelEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "accept": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Accept",
+          "type": "array"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "history": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HistoryItem_str_"
+          },
+          "title": "History",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "LabelField[str]",
+      "type": "object"
+    },
+    "LabelFields": {
+      "additionalProperties": false,
+      "properties": {
+        "project_title": {
+          "$ref": "#/$defs/LabelField_str_"
+        },
+        "issuing_org": {
+          "$ref": "#/$defs/LabelField_str_"
+        },
+        "reference_no": {
+          "$ref": "#/$defs/LabelField_str_"
+        },
+        "closing_at": {
+          "$ref": "#/$defs/LabelField_AwareDatetime_"
+        },
+        "site_meeting": {
+          "$ref": "#/$defs/LabelField_SiteMeeting_"
+        },
+        "location": {
+          "$ref": "#/$defs/LabelField_str_"
+        },
+        "est_value": {
+          "$ref": "#/$defs/LabelField_Money_"
+        },
+        "certifications": {
+          "$ref": "#/$defs/LabelField_list_str__"
+        },
+        "bonding_insurance": {
+          "$ref": "#/$defs/LabelField_list_BondingItem__"
+        },
+        "eval_criteria": {
+          "$ref": "#/$defs/LabelField_EvalCriteria_"
+        }
+      },
+      "required": [
+        "project_title",
+        "issuing_org",
+        "reference_no",
+        "closing_at",
+        "site_meeting",
+        "location",
+        "est_value",
+        "certifications",
+        "bonding_insurance",
+        "eval_criteria"
+      ],
+      "title": "LabelFields",
+      "type": "object"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "properties": {
+        "low": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Low"
+        },
+        "high": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "High"
+        }
+      },
+      "required": [
+        "low",
+        "high"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "SiteMeeting": {
+      "additionalProperties": false,
+      "properties": {
+        "when": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "format": "date",
+              "type": "string"
+            }
+          ],
+          "title": "When"
+        },
+        "mandatory": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mandatory"
+        }
+      },
+      "required": [
+        "when",
+        "mandatory"
+      ],
+      "title": "SiteMeeting",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "tender_id": {
+      "minLength": 1,
+      "title": "Tender Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "tender",
+        "rfp",
+        "two-stage",
+        "qualification",
+        "design-build"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "addenda_count": {
+      "minimum": 0,
+      "title": "Addenda Count",
+      "type": "integer"
+    },
+    "labelled_by": {
+      "enum": [
+        "hand",
+        "labeller_checked"
+      ],
+      "title": "Labelled By",
+      "type": "string"
+    },
+    "labelled_on": {
+      "format": "date",
+      "title": "Labelled On",
+      "type": "string"
+    },
+    "minutes": {
+      "minimum": 0,
+      "title": "Minutes",
+      "type": "integer"
+    },
+    "fields": {
+      "$ref": "#/$defs/LabelFields"
+    }
+  },
+  "required": [
+    "schema_version",
+    "tender_id",
+    "kind",
+    "addenda_count",
+    "labelled_by",
+    "labelled_on",
+    "minutes",
+    "fields"
+  ],
+  "title": "TenderLabel",
+  "type": "object"
+}

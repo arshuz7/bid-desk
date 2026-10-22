@@ -1,4 +1,4 @@
-.PHONY: install lint format test db-up db-down migrate extract eval eval-holdout
+.PHONY: install lint format test schema validate-labels db-up db-down migrate extract eval eval-holdout
 
 install:
 	uv sync
@@ -6,6 +6,7 @@ install:
 lint:
 	uv run ruff format --check
 	uv run ruff check
+	uv run lint-imports
 
 format:
 	uv run ruff format
@@ -13,6 +14,13 @@ format:
 
 test:
 	uv run pytest -m "not db"
+
+schema:
+	uv run python -c "import json; from bidesk.schemas.labels import label_json_schema; print(json.dumps(label_json_schema(), indent=2))" > data/labels/label.schema.json
+
+DIR ?= data/labels/dev
+validate-labels:
+	uv run python -m bidesk.evals.validate_labels $(DIR)
 
 db-up: .env
 	docker compose up -d --wait db

@@ -101,3 +101,16 @@ Decided after a three-analyst design review on 2026-10-10. The schema is in
 | Gate 1 is the dev baseline only | The holdout runs at most twice; spending a run on the baseline adds nothing |
 | Holdout run 1 (story 5.6) scores baseline, workers and workers plus verifier | Gives the before-and-after on unseen tenders without an extra holdout run |
 | Holdout tender IDs stay out of the repo (DEVLOG says H1–H8), and a gitignored `.claude/settings.local.json` denies agents the holdout tenders' `data/raw/` folders; holdout tenders are ingested only for `make eval-holdout` | DEVLOG.md is committed, and knowing the IDs would let an agent read the holdout PDFs while tuning. The deny rules don't cover database rows, hence late ingest |
+
+## Schema code (2026-10-10)
+
+| Decision | Why |
+| --- | --- |
+| Every schema model rejects unknown keys (`extra="forbid"`) | A misspelled label key would otherwise be dropped silently, and a model returning `confidence` would be ignored instead of rejected |
+| `WorkerFields` holds all 10 fields as `WorkerField` | The single-call baseline (2.4) returns it; workers (3.3) return subsets built from `FIELD_SPECS` |
+| The models are written out by hand; a test checks they match `FIELD_SPECS` in names, order and value types | Generated models lose type hints and editor completion; the test keeps one source of truth |
+| A FOUND string can't be blank; a criterion has a weight unless its unit is `pass_fail`; a bonding `amount` and `unit` come together | Blank strings and missing units are absence or ambiguity disguised as a value |
+| `SiteMeeting.when` rejects any time without a zone before parsing | Pydantic would otherwise turn a naive `"…T00:00:00"` into a date silently |
+| `labelled_by` is `hand` or `labeller_checked` | Records which labels started as a model draft |
+| The label validator checks evidence and history files, page counts, `kind` and `addenda_count` against the manifest; "history required when an addendum changed the field" is not machine-checked | An addendum can add a field without replacing a value, so citing an addendum doesn't imply history |
+| `import-linter` runs in `make lint`, with layers not yet built marked optional | `schemas` and `evals` now exist, so the layering in CLAUDE.md is enforced from the first two layers |

@@ -4,10 +4,13 @@ version = "0.1.0"
 description = "A governed AI pipeline over Alberta construction tenders"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "pydantic>=2.14",
+]
 
 [dependency-groups]
 dev = [
+    "import-linter>=2.15",
     "pytest>=9.1.1",
     "ruff>=0.17.0",
 ]
@@ -29,3 +32,22 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "ANN"]
 testpaths = ["tests"]
 addopts = ["-ra", "--strict-markers"]
 markers = ["db: needs the local Postgres from `make db-up`; excluded from `make test`"]
+
+[tool.importlinter]
+root_package = "bidesk"
+
+[[tool.importlinter.contracts]]
+name = "Imports point downward through the layers in CLAUDE.md"
+type = "layers"
+containers = ["bidesk"]
+# Parentheses mark layers that don't exist yet.
+layers = [
+    "(api)",
+    "evals",
+    "(pipeline)",
+    "(governance)",
+    "(ingest) | (retrieval)",
+    "(llm)",
+    "(db) | (tracing)",
+    "(config) | schemas",
+]
