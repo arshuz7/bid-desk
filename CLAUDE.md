@@ -54,7 +54,9 @@ Defined in the Makefile once story 1.3 is done:
 
 - `make db-up` / `make migrate`: start Postgres with pgvector and apply `sql/` migrations
 - `make test`: fast tests, no network and no model calls
-- `make lint`: `ruff format --check` and `ruff check`
+- `make lint`: `ruff format --check`, `ruff check` and `lint-imports` (the layering contract)
+- `make schema`: regenerate `data/labels/label.schema.json` after a schema change
+- `make validate-labels DIR=<dir>`: check label files against the schema and the manifest
 - `make extract TENDER=<id>`: run extraction on one tender
 - `make eval`: dev extraction and Ask evals; writes `evals/results/` and appends to `EVALS.md`
 - `make eval-holdout`: developer only
