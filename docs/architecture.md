@@ -173,6 +173,12 @@ class EvalCriteria(BaseModel):
     basis: Literal["lowest_compliant_price", "weighted", "pass_fail_then_price", "other"]
     criteria: list[Criterion] = []        # top level only; empty for lowest price
 
+class Contact(BaseModel):                 # who the tender says to send questions to
+    role: str | None
+    name: str | None
+    email: str | None
+    phone: str | None                     # needs an email or a phone
+
 class TenderFields(BaseModel):
     project_title:     ExtractedField[str]
     issuing_org:       ExtractedField[str]
@@ -184,7 +190,12 @@ class TenderFields(BaseModel):
     certifications:    ExtractedField[list[str]]
     bonding_insurance: ExtractedField[list[BondingItem]]
     eval_criteria:     ExtractedField[EvalCriteria]
+    tender_contact:    ExtractedField[Contact]   # extracted and grounded, never labelled
 ```
+
+`FIELD_SPECS` marks each field `labelled`. The 10 labelled fields are labelled and scored;
+`tender_contact` is extracted, shown per tender with a citation and checked by grounding, but
+never labelled or scored (decision O7).
 
 Validators:
 - FOUND needs a value and at least one evidence item. NOT_STATED and FAILED need value `None`.

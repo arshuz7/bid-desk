@@ -7,7 +7,9 @@ from pydantic import AwareDatetime, ValidationError
 
 from bidesk.schemas.fields import (
     FIELD_SPECS,
+    LABELLED_SPECS,
     BondingItem,
+    Contact,
     Criterion,
     EvalCriteria,
     ExtractedField,
@@ -195,14 +197,32 @@ def field_value_types(model: type) -> list[tuple[str, object]]:
     return out
 
 
-@pytest.mark.parametrize("model", [WorkerFields, TenderFields, LabelFields])
-def test_models_match_field_specs(model: type) -> None:
+@pytest.mark.parametrize("model", [WorkerFields, TenderFields])
+def test_output_models_match_field_specs(model: type) -> None:
     expected = [(spec.name, spec.value_type) for spec in FIELD_SPECS]
     assert field_value_types(model) == expected
 
 
-def test_field_specs_have_ten_unique_fields() -> None:
+def test_label_model_matches_labelled_field_specs() -> None:
+    expected = [(spec.name, spec.value_type) for spec in LABELLED_SPECS]
+    assert field_value_types(LabelFields) == expected
+
+
+def test_ten_labelled_fields_plus_the_unlabelled_contact() -> None:
     names = [spec.name for spec in FIELD_SPECS]
-    assert len(names) == 10
-    assert len(set(names)) == 10
+    assert len(names) == len(set(names)) == 11
+    assert len(LABELLED_SPECS) == 10
+    assert [spec.name for spec in FIELD_SPECS if not spec.labelled] == ["tender_contact"]
     assert all(spec.description for spec in FIELD_SPECS)
+
+
+# Contact
+
+
+def test_contact_needs_an_email_or_a_phone() -> None:
+    assert Contact(role="Contracting Authority", email="bids@example.ca").email
+    assert Contact(phone="780-555-0100").phone
+    with pytest.raises(ValidationError, match="email or a phone"):
+        Contact(role="Contracting Authority", name="A. Person")
+    with pytest.raises(ValidationError, match="email or a phone"):
+        Contact(email="  ", phone="")

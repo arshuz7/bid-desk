@@ -79,6 +79,50 @@ class TenderLabel(Strict):
     fields: LabelFields
 
 
+ASK_QUESTIONS_PER_TENDER = 3
+
+
+class AskQuestion(Strict):
+    """One Ask eval question with its reference answer and the page that settles it."""
+
+    question: str = Field(min_length=1)
+    status: Literal[Status.FOUND, Status.NOT_STATED]
+    answer: str | None = None
+    evidence: LabelEvidence | None = None
+
+    @model_validator(mode="after")
+    def _check_status(self) -> Self:
+        if self.status == Status.FOUND:
+            if self.answer is None or not self.answer.strip():
+                raise ValueError("FOUND needs a reference answer")
+            if self.evidence is None:
+                raise ValueError("FOUND needs the file and page of the answer")
+        elif self.answer is not None or self.evidence is not None:
+            raise ValueError("NOT_STATED has no answer or evidence")
+        return self
+
+
+class TenderAsk(Strict):
+    """`<tender_id>.ask.json`: the Ask eval questions for one tender."""
+
+    schema_version: Literal[1]
+    tender_id: str = Field(min_length=1)
+    questions: list[AskQuestion] = Field(
+        min_length=ASK_QUESTIONS_PER_TENDER, max_length=ASK_QUESTIONS_PER_TENDER
+    )
+
+    @model_validator(mode="after")
+    def _one_unanswerable(self) -> Self:
+        if all(q.status == Status.FOUND for q in self.questions):
+            raise ValueError("at least one question must be not_stated in this tender")
+        return self
+
+
 def label_json_schema() -> dict[str, Any]:
     """The JSON Schema that CI and editors validate label files against."""
     return TenderLabel.model_json_schema()
+
+
+def ask_json_schema() -> dict[str, Any]:
+    """The JSON Schema for `<tender_id>.ask.json` files."""
+    return TenderAsk.model_json_schema()
