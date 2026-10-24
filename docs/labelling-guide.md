@@ -6,6 +6,9 @@ All examples below are synthetic.
 
 ## Before you start
 
+0. Create the two files with `make label-template TENDER=<id> OUT=<folder>`. It fills in the
+   header from the manifest, lists the tender's files and page counts, and starts every field and
+   question as `TODO`, which fails validation until you replace it. It never overwrites a file.
 1. Open every in-scope file of the tender: the solicitation, all addenda, appendices and
    Division 01 specifications. Skip drawings and reference files (directories, information-
    session slides, background reports). Retrieval indexes the same roles, so a value you find
@@ -77,10 +80,21 @@ criteria. Otherwise list top-level criteria only, with their weights; ignore sub
 pass marks. Pass/fail criteria have `unit: "pass_fail"` and a null weight.
 `"value": {"basis": "weighted", "criteria": [{"name": "Price", "weight": "60", "unit": "percent"}, {"name": "Technical", "weight": "40", "unit": "percent"}]}`
 
+## Ask questions
+
+Write 3 per tender in `<tender_id>.ask.json`:
+- Questions a bidder would really ask, each answered on one page you cite.
+- At least one the tender doesn't answer ("Is a warranty bond required?" when it isn't
+  mentioned), with `"status": "not_stated"`.
+- A good default for one of the 3: "Who do I send questions to, and by when?" Answer with the
+  role and the deadline ("the Contracting Authority on the cover page, by 2026-11-13"), never the
+  person's name, email or phone.
+
 ## Before you save
 
 - [ ] All 10 fields are present, each `found` with one evidence item or `not_stated`.
 - [ ] Every value changed by an addendum has `history`.
 - [ ] No contact names, emails or phone numbers anywhere.
 - [ ] `minutes`, `addenda_count` and `kind` are filled in.
-- [ ] The label validator passes on the file.
+- [ ] The `.ask.json` file has 3 questions, at least one `not_stated`.
+- [ ] `make validate-labels DIR=<folder>` passes on both files.

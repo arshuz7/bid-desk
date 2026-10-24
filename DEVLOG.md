@@ -11,3 +11,4 @@ An estimate before each task and the actual time after it.
 | 2026-10-21 | 1.6 | tracing.py and llm.py: spans, cost, $2/day cap, Claude structured output, Voyage embeddings | 1.5 h (Claude's guess) | ~6 min of build time | Started 18:17 MDT, done 18:23 |
 | 2026-10-22 | 2.0 | Scanned files check (12 files, 3 tenders) | 15 min (roadmap) | 20 min (developer) | All drawings or site photos; 3 tenders become holdout-eligible |
 | 2026-10-24 | 2.1 | Choose the 8 holdout tenders (H1–H8), holdout folder, deny rules in settings.local.json, refusal tested | 30 min (roadmap) | 35 min (developer) | Picked at random within each group (wheel of names); IDs kept outside the repo |
+| 2026-10-24 | 2.2 prep | Labelling tools: make label-template, Ask question file + validator, tender_contact field | 1 h (Claude's guess) | ~3 min of build time | Started 00:06 MDT, done 00:09 |

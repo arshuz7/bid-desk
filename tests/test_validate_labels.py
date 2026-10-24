@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from bidesk.evals.validate_labels import check_label, load_manifest, main
+from bidesk.evals.validate_labels import check_ask, check_label, load_manifest, main
 
 MANIFEST_ROWS = [
     ("synthetic-real", "itt-example.pdf", "solicitation", "12", "tender"),
@@ -111,6 +111,52 @@ def test_invalid_json_is_reported(tmp_path: Path, manifest: Path) -> None:
     assert check_label(path, load_manifest(manifest))[0].startswith("not valid JSON")
 
 
+def write_ask(directory: Path, tender_id: str, questions: list[dict[str, Any]]) -> Path:
+    path = directory / f"{tender_id}.ask.json"
+    data = {"schema_version": 1, "tender_id": tender_id, "questions": questions}
+    path.write_text(json.dumps(data))
+    return path
+
+
+ASK_QUESTIONS = [
+    {
+        "question": "When does the bid close?",
+        "status": "found",
+        "answer": "2026-11-20 at 2:00 p.m. MST",
+        "evidence": {"file": "addendum-002-example.pdf", "page": 1},
+    },
+    {
+        "question": "Who do I send questions to, and by when?",
+        "status": "found",
+        "answer": "The Contracting Authority on the cover page, in writing, by 2026-11-13",
+        "evidence": {"file": "itt-example.pdf", "page": 3},
+    },
+    {"question": "Is a warranty bond required?", "status": "not_stated"},
+]
+
+
+def test_valid_ask_file_has_no_problems(tmp_path: Path, manifest: Path) -> None:
+    path = write_ask(tmp_path, "synthetic-real", ASK_QUESTIONS)
+    assert check_ask(path, load_manifest(manifest)) == []
+
+
+def test_ask_evidence_is_checked_against_the_manifest(tmp_path: Path, manifest: Path) -> None:
+    questions = [dict(q) for q in ASK_QUESTIONS]
+    questions[0]["evidence"] = {"file": "itt-example.pdf", "page": 99}
+    path = write_ask(tmp_path, "synthetic-real", questions)
+    assert check_ask(path, load_manifest(manifest)) == [
+        "question 1: page 99 is past the end of 'itt-example.pdf' (12 pages)"
+    ]
+
+
+def test_ask_file_name_must_match(tmp_path: Path, manifest: Path) -> None:
+    path = write_ask(tmp_path, "synthetic-real", ASK_QUESTIONS)
+    renamed = path.rename(tmp_path / "wrong.ask.json")
+    assert check_ask(renamed, load_manifest(manifest)) == [
+        "file name should be synthetic-real.ask.json"
+    ]
+
+
 def test_main_exit_codes(
     tmp_path: Path,
     manifest: Path,
@@ -121,8 +167,12 @@ def test_main_exit_codes(
     assert main(args) == 0  # empty directory
 
     write_label(tmp_path, label)
+    assert main(args) == 1  # no ask file yet
+    assert "missing synthetic-real.ask.json" in capsys.readouterr().out
+
+    write_ask(tmp_path, "synthetic-real", ASK_QUESTIONS)
     assert main(args) == 0
+    assert "1 label(s) and 1 ask file(s) checked, 0 with problems" in capsys.readouterr().out
 
     write_label(tmp_path, {**label, "tender_id": "other-tender"})
     assert main(args) == 1
-    assert "2 label(s) checked, 1 with problems" in capsys.readouterr().out

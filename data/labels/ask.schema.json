@@ -1,0 +1,103 @@
+{
+  "$defs": {
+    "AskQuestion": {
+      "additionalProperties": false,
+      "description": "One Ask eval question with its reference answer and the page that settles it.",
+      "properties": {
+        "question": {
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "found",
+            "not_stated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "answer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LabelEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "question",
+        "status"
+      ],
+      "title": "AskQuestion",
+      "type": "object"
+    },
+    "LabelEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        },
+        "page": {
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file",
+        "page"
+      ],
+      "title": "LabelEvidence",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "`<tender_id>.ask.json`: the Ask eval questions for one tender.",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "tender_id": {
+      "minLength": 1,
+      "title": "Tender Id",
+      "type": "string"
+    },
+    "questions": {
+      "items": {
+        "$ref": "#/$defs/AskQuestion"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Questions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "tender_id",
+    "questions"
+  ],
+  "title": "TenderAsk",
+  "type": "object"
+}

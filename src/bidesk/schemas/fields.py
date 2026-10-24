@@ -1,8 +1,9 @@
 """Extraction field schema: what workers return and what governance stores.
 
-`FIELD_SPECS` is the single source of truth for the 10 fields. `WorkerFields`, `TenderFields`
-and the label models in `labels.py` must list the same fields in the same order with the same
-value types; a test enforces it.
+`FIELD_SPECS` is the single source of truth for the fields: 10 labelled and scored, plus
+`tender_contact`, which is extracted and grounded but never labelled. `WorkerFields` and
+`TenderFields` list every field; the label models in `labels.py` list the labelled ones. A test
+checks names, order and value types against `FIELD_SPECS`.
 """
 
 from dataclasses import dataclass
@@ -156,12 +157,28 @@ class EvalCriteria(Strict):
         return self
 
 
+class Contact(Strict):
+    """Who the tender says to send questions to: a person or a mailbox."""
+
+    role: str | None = None  # e.g. "Contracting Authority"
+    name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+
+    @model_validator(mode="after")
+    def _reachable(self) -> Self:
+        if not (self.email or "").strip() and not (self.phone or "").strip():
+            raise ValueError("a contact needs an email or a phone number")
+        return self
+
+
 @dataclass(frozen=True)
 class FieldSpec:
     name: str
     label: str
     value_type: Any
     description: str
+    labelled: bool = True  # False: extracted and grounded, but not labelled or scored
 
 
 FIELD_SPECS: tuple[FieldSpec, ...] = (
@@ -231,11 +248,21 @@ FIELD_SPECS: tuple[FieldSpec, ...] = (
         "The award basis and top-level criteria with weights. A lowest-price award has no "
         "criteria. Ignore sub-criteria and pass marks.",
     ),
+    FieldSpec(
+        "tender_contact",
+        "Contact for questions",
+        Contact,
+        "The person or mailbox the tender says to send questions to, as written in the tender. "
+        "Nothing else about people.",
+        labelled=False,
+    ),
 )
+
+LABELLED_SPECS = tuple(spec for spec in FIELD_SPECS if spec.labelled)
 
 
 class WorkerFields(Strict):
-    """All 10 fields as the model returns them, e.g. from the single-call baseline."""
+    """All fields as the model returns them, e.g. from the single-call baseline."""
 
     project_title: WorkerField[str]
     issuing_org: WorkerField[str]
@@ -247,6 +274,7 @@ class WorkerFields(Strict):
     certifications: WorkerField[list[str]]
     bonding_insurance: WorkerField[list[BondingItem]]
     eval_criteria: WorkerField[EvalCriteria]
+    tender_contact: WorkerField[Contact]
 
 
 class TenderFields(Strict):
@@ -260,3 +288,4 @@ class TenderFields(Strict):
     certifications: ExtractedField[list[str]]
     bonding_insurance: ExtractedField[list[BondingItem]]
     eval_criteria: ExtractedField[EvalCriteria]
+    tender_contact: ExtractedField[Contact]

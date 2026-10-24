@@ -61,7 +61,10 @@ decide each value is in [labelling-guide.md](labelling-guide.md).
 - `history` (`[{"value": ..., "file": ...}]`): required whenever an addendum changed the field.
   It lists the replaced values, oldest first, with the file that stated each one.
 
-All 10 fields are present in every label. A complete example, with synthetic values only:
+All 10 labelled fields are present in every label (`tender_contact` is never labelled). Start a
+label with `make label-template TENDER=<id> OUT=<dir>`, which fills in the header from the
+manifest and marks every field `TODO` until you fill it. A complete example, with synthetic
+values only:
 
 ```json
 {
@@ -205,7 +208,24 @@ two-stage, qualification, design-build). Slices on the holdout are small, so giv
 ## Ask eval
 
 - 3 questions per labelled tender (60 in total), each with a reference answer and its file and
-  page.
+  page, in `<tender_id>.ask.json` next to the label (the template writes one):
+
+  ```json
+  {
+    "schema_version": 1,
+    "tender_id": "synthetic-example",
+    "questions": [
+      {"question": "When does the bid close?", "status": "found",
+       "answer": "2026-11-20 at 2:00 p.m. MST", "evidence": {"file": "addendum-002-example.pdf", "page": 1}},
+      {"question": "Who do I send questions to, and by when?", "status": "found",
+       "answer": "The Contracting Authority on the cover page, in writing, by 2026-11-13",
+       "evidence": {"file": "itt-example.pdf", "page": 3}},
+      {"question": "Is a warranty bond required?", "status": "not_stated"}
+    ]
+  }
+  ```
+- A reference answer names a role ("the Contracting Authority"), never a person's name, email
+  or phone number: dev Ask files are committed.
 - At least one question per tender has no answer in the tender. The correct reply is "not stated
   in this tender".
 - Scored on: answer correct (LLM judge against the reference), citation correct, and refusal

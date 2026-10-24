@@ -1,7 +1,7 @@
 # Bid Desk
 
-A governed AI pipeline over Alberta construction tenders. It extracts 10 fields with file and page
-citations, answers questions with citations, and drafts a compliance checklist. Every model call
+A governed AI pipeline over Alberta construction tenders. It extracts 10 scored fields, plus the
+tender's contact for questions, with file and page citations, answers questions with citations, and drafts a compliance checklist. Every model call
 is logged and scored for confidence, and low-confidence fields go to a human reviewer.
 
 Read before planning any change:
@@ -58,7 +58,8 @@ Defined in the Makefile once story 1.3 is done:
 - `make test`: fast tests, no network and no model calls
 - `make lint`: `ruff format --check`, `ruff check` and `lint-imports` (the layering contract)
 - `make schema`: regenerate `data/labels/label.schema.json` after a schema change
-- `make validate-labels DIR=<dir>`: check label files against the schema and the manifest
+- `make validate-labels DIR=<dir>`: check label and Ask files against the schemas and the manifest
+- `make label-template TENDER=<id> OUT=<dir>`: start a label and an Ask file for one tender
 - `make extract TENDER=<id>`: run extraction on one tender
 - `make eval`: dev extraction and Ask evals; writes `evals/results/` and appends to `EVALS.md`
 - `make eval-holdout`: developer only

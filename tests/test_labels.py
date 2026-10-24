@@ -5,7 +5,14 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from bidesk.schemas.labels import LabelField, TenderLabel, label_json_schema
+from bidesk.schemas.labels import (
+    AskQuestion,
+    LabelField,
+    TenderAsk,
+    TenderLabel,
+    ask_json_schema,
+    label_json_schema,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE = [{"file": "itt-example.pdf", "page": 1}]
@@ -103,3 +110,55 @@ def test_json_schema_forbids_unknown_keys() -> None:
     schema = label_json_schema()
     assert schema["additionalProperties"] is False
     assert schema["$defs"]["LabelEvidence"]["additionalProperties"] is False
+
+
+# Ask files
+
+FOUND_Q = {
+    "question": "When does the bid close?",
+    "status": "found",
+    "answer": "2026-11-20 at 2:00 p.m.",
+    "evidence": {"file": "itt.pdf", "page": 3},
+}
+NOT_STATED_Q = {"question": "Is a warranty bond required?", "status": "not_stated"}
+
+
+def ask(questions: list[dict[str, Any]]) -> dict[str, Any]:
+    return {"schema_version": 1, "tender_id": "t", "questions": questions}
+
+
+def test_ask_file_with_three_questions_validates() -> None:
+    assert len(TenderAsk.model_validate(ask([FOUND_Q, FOUND_Q, NOT_STATED_Q])).questions) == 3
+
+
+@pytest.mark.parametrize("count", [2, 4])
+def test_ask_file_needs_exactly_three_questions(count: int) -> None:
+    with pytest.raises(ValidationError):
+        TenderAsk.model_validate(ask([NOT_STATED_Q] * count))
+
+
+def test_ask_file_needs_one_unanswerable_question() -> None:
+    with pytest.raises(ValidationError, match="not_stated"):
+        TenderAsk.model_validate(ask([FOUND_Q] * 3))
+
+
+@pytest.mark.parametrize("missing", ["answer", "evidence"])
+def test_found_question_needs_answer_and_evidence(missing: str) -> None:
+    question = {k: v for k, v in FOUND_Q.items() if k != missing}
+    with pytest.raises(ValidationError, match="FOUND needs"):
+        AskQuestion.model_validate(question)
+
+
+def test_not_stated_question_has_no_answer() -> None:
+    with pytest.raises(ValidationError, match="no answer or evidence"):
+        AskQuestion.model_validate({**NOT_STATED_Q, "answer": "Yes"})
+
+
+def test_ask_question_status_todo_is_rejected() -> None:
+    with pytest.raises(ValidationError):
+        AskQuestion.model_validate({**FOUND_Q, "status": "TODO"})
+
+
+def test_committed_ask_schema_is_current() -> None:
+    committed = json.loads((ROOT / "data" / "labels" / "ask.schema.json").read_text())
+    assert committed == ask_json_schema(), "run `make schema` and commit the result"

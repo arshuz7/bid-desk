@@ -144,3 +144,13 @@ Decided after a three-analyst design review on 2026-10-10. The schema is in
 | All 12 scanned files are drawings or site photos and state none of the fields, so tenders 26-0139, 26-0163 and 26-0219 are eligible for the holdout; only the Wood Buffalo tender stays excluded | Checked by hand, file by file (20 minutes). Their text-bearing files are ordinary PDFs, so extraction loses nothing to the scanned pages |
 | 26-0219's scanned appendix is an excerpt of 1998 drawings from an earlier project; its title block ("Jasper National Park Compound Renovations Warden Offices") is not this tender's title | The project title comes from the solicitation's cover (labelling guide); drawings are out of scope for labels and retrieval |
 | In story 1.8, the 12 files get role `drawings` (plans) or `reference` (site photos), with `scanned` kept as a column | Both roles are out of scope, so these pages are stored for display but never chunked or searched |
+
+## Labelling tools (2026-10-24)
+
+| Decision | Why |
+| --- | --- |
+| `make label-template` starts every field and question as `TODO`, which fails validation | An untouched stub that defaulted to `not_stated` would pass and silently corrupt null honesty |
+| The template never overwrites an existing file, and writes nothing if either file exists | A label is 30–40 minutes of work |
+| Ask questions live in `<tender_id>.ask.json` next to the label: exactly 3, at least one `not_stated`, each `found` one with an answer and one `{file, page}`; `make validate-labels` reports a label with no Ask file | The label format rejects unknown keys and stays locked; a separate file keeps both simple |
+| Ask reference answers name a role, never a person's name, email or phone | Dev Ask files are committed to a repo that goes public (decision O7) |
+| `FieldSpec.labelled`: `tender_contact` is in `WorkerFields` and `TenderFields` but not in the label models; drift tests check both sets | Implements O7 (B4) without touching the label format |
