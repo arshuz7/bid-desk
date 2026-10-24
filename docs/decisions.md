@@ -136,3 +136,11 @@ Decided after a three-analyst design review on 2026-10-10. The schema is in
 | Decision | Why |
 | --- | --- |
 | **O7 resolved (option B4):** add `tender_contact`, the person or mailbox the tender says to send questions to, as an 11th extracted field, shown per tender with a citation. It is checked by grounding (the email or phone must appear on the cited page) but **not labelled or scored**, so labels and accuracy stay on the 10 fields. Tender text is kept as it is, with no redaction. Contacts are never collected across tenders or stored in committed files | Bidders need the contracting authority. Grounding is the right check for copying a contact off a page, so a made-up email can't get through. Not labelling it costs no labelling time and keeps real contact details out of the dev labels, which are committed to a repo that goes public. It can become a scored field after Oct 28 by adding it to labels kept out of git |
+
+## Scanned files check, story 2.0 (2026-10-22)
+
+| Decision | Why |
+| --- | --- |
+| All 12 scanned files are drawings or site photos and state none of the fields, so tenders 26-0139, 26-0163 and 26-0219 are eligible for the holdout; only the Wood Buffalo tender stays excluded | Checked by hand, file by file (20 minutes). Their text-bearing files are ordinary PDFs, so extraction loses nothing to the scanned pages |
+| 26-0219's scanned appendix is an excerpt of 1998 drawings from an earlier project; its title block ("Jasper National Park Compound Renovations Warden Offices") is not this tender's title | The project title comes from the solicitation's cover (labelling guide); drawings are out of scope for labels and retrieval |
+| In story 1.8, the 12 files get role `drawings` (plans) or `reference` (site photos), with `scanned` kept as a column | Both roles are out of scope, so these pages are stored for display but never chunked or searched |

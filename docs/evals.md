@@ -15,10 +15,11 @@ at the repo root. The field types are defined in [architecture.md](architecture.
 **Holdout eligibility.** These exclusions are written down so the holdout isn't silently made
 easier than dev:
 - Exclude the 3 tenders with scanned files (26-0139, 26-0163, 26-0219), unless the story 2.0
-  check shows their scanned files are only drawings.
+  check shows their scanned files are only drawings. **Outcome (2026-10-22):** all 12 scanned
+  files are drawings or site photos and state no field, so all 3 tenders are eligible.
 - Exclude the 1,208-page Wood Buffalo tender (`muni-rmwb-fort-mckay-centre`).
-- Excluded tenders go to Spare. With all 4 excluded, Spare is those 4 plus 1 more, and Dev is
-  12 of the remaining 13.
+- Excluded tenders go to Spare. With only Wood Buffalo excluded, Spare is Wood Buffalo plus 4
+  more, chosen after the holdout and dev sets.
 - Include at least 4 tenders where an addendum actually changes a labelled field. This can't
   be known for certain before labelling, so in story 2.1 skim each candidate's addenda and pick
   ones that visibly change a closing time, site meeting, bonding or criteria. If labelling
