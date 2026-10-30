@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: install lint format test test-db schema validate-labels label-template db-up db-down migrate extract eval eval-holdout
+.PHONY: install lint format test test-db schema check-manifest validate-labels label-template db-up db-down migrate extract eval eval-holdout
 
 install:
 	uv sync
@@ -24,6 +24,9 @@ test-db:
 schema:
 	uv run python -c "import json; from bidesk.schemas.labels import label_json_schema; print(json.dumps(label_json_schema(), indent=2))" > data/labels/label.schema.json
 	uv run python -c "import json; from bidesk.schemas.labels import ask_json_schema; print(json.dumps(ask_json_schema(), indent=2))" > data/labels/ask.schema.json
+
+check-manifest:
+	uv run python -m bidesk.manifest
 
 DIR ?= data/labels/dev
 validate-labels:

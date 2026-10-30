@@ -6,3 +6,5 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 .claude/settings.local.json
+# Tenders that are NOT in the holdout: holdout IDs never enter the repo.
+data/non-holdout.txt

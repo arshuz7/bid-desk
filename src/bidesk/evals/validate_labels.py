@@ -6,7 +6,6 @@ Tenders that aren't in the manifest (synthetic smoke and demo tenders) skip the 
 """
 
 import argparse
-import csv
 import json
 import sys
 from collections.abc import Sequence
@@ -15,9 +14,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ValidationError
 
+from bidesk.manifest import DEFAULT_PATH, read_rows
 from bidesk.schemas.labels import LabelEvidence, TenderAsk, TenderLabel
-
-DEFAULT_MANIFEST = Path("data/manifest.csv")
 
 
 @dataclass
@@ -29,11 +27,10 @@ class ManifestTender:
 
 def load_manifest(path: Path) -> dict[str, ManifestTender]:
     tenders: dict[str, ManifestTender] = {}
-    with path.open(newline="") as f:
-        for row in csv.DictReader(f):
-            tender = tenders.setdefault(row["tender_id"], ManifestTender(kind=row["kind"]))
-            tender.pages[row["file"]] = int(row["pages"] or 0)
-            tender.addenda_count += row["role"] == "addendum"
+    for row in read_rows(path):
+        tender = tenders.setdefault(row["tender_id"], ManifestTender(kind=row["kind"]))
+        tender.pages[row["file"]] = int(row["pages"] or 0)
+        tender.addenda_count += row["role"] == "addendum"
     return tenders
 
 
@@ -110,7 +107,7 @@ def check_ask(path: Path, manifest: dict[str, ManifestTender]) -> list[str]:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("dir", type=Path)
-    parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument("--manifest", type=Path, default=DEFAULT_PATH)
     args = parser.parse_args(argv)
 
     if not args.dir.is_dir():

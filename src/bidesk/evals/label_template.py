@@ -13,7 +13,8 @@ from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 
-from bidesk.evals.validate_labels import ASK_SUFFIX, DEFAULT_MANIFEST, load_manifest
+from bidesk.evals.validate_labels import ASK_SUFFIX, load_manifest
+from bidesk.manifest import DEFAULT_PATH
 from bidesk.schemas.fields import LABELLED_SPECS
 from bidesk.schemas.labels import ASK_QUESTIONS_PER_TENDER
 from bidesk.tracing import EDMONTON
@@ -49,7 +50,7 @@ def ask_template(tender_id: str) -> dict:
 
 
 def write_templates(
-    tender_id: str, out: Path, manifest_path: Path = DEFAULT_MANIFEST, labelled_by: str = "hand"
+    tender_id: str, out: Path, manifest_path: Path = DEFAULT_PATH, labelled_by: str = "hand"
 ) -> list[Path]:
     """Write both files and return their paths. Raises TemplateError and writes nothing if the
     tender is unknown or either file already exists."""
@@ -74,7 +75,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("tender_id")
     parser.add_argument("--out", type=Path, default=Path("data/labels/drafts"))
-    parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument("--manifest", type=Path, default=DEFAULT_PATH)
     parser.add_argument("--labelled-by", choices=["hand", "labeller_checked"], default="hand")
     args = parser.parse_args(argv)
 
