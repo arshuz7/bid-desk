@@ -53,5 +53,5 @@ layers = [
     "ingest | retrieval",
     "llm",
     "db | tracing",
-    "config | schemas | manifest",
+    "config | schemas | manifest | text",
 ]
