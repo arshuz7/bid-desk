@@ -363,6 +363,16 @@ def test_embed_http_errors_raise_llm_call_failed(
     assert sink.records[0].status == "error"
 
 
+def test_embed_errors_carry_voyages_reason(
+    llm: LLM, fake_voyage: FakeVoyage, sink: MemorySink
+) -> None:
+    reason = "add a payment method to unlock standard rate limits"
+    fake_voyage.queue.append(httpx2.Response(429, json={"detail": reason}))
+    with pytest.raises(LLMCallFailed, match=f"Voyage API error 429: .*{reason}"):
+        asyncio.run(llm.embed(["a"], "query"))
+    assert reason in (sink.records[0].error or "")  # the span keeps it too
+
+
 @pytest.mark.parametrize("body", [{"data": []}, {"usage": {"total_tokens": 1}}, "not json"])
 def test_embed_malformed_response_fails(
     llm: LLM, fake_voyage: FakeVoyage, sink: MemorySink, body: object

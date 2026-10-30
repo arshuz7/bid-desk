@@ -8,11 +8,23 @@ class ConfigError(RuntimeError):
     pass
 
 
+def _required(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise ConfigError(f"{name} is not set; copy .env.example to .env and run via make")
+    return value
+
+
 def database_url() -> str:
-    url = os.environ.get("DATABASE_URL", "").strip()
-    if not url:
-        raise ConfigError("DATABASE_URL is not set; copy .env.example to .env and run via make")
-    return url
+    return _required("DATABASE_URL")
+
+
+def anthropic_api_key() -> str:
+    return _required("ANTHROPIC_API_KEY")
+
+
+def voyage_api_key() -> str:
+    return _required("VOYAGE_API_KEY")
 
 
 def daily_cap_usd() -> Decimal:

@@ -189,3 +189,21 @@ Decided after a three-analyst design review on 2026-10-10. The schema is in
 | 26-0163: the row for `itt-26-0163a.pdf` is removed; `itt-26-0163a_0.pdf` is its corrected reissue | The original had a typo and was deleted from `data/raw/`. The manifest is now 125 files and 3,511 pages |
 | `bidesk.manifest` sits in the bottom layer with `config` and `schemas` | Ingest and the evals both read it, and it imports nothing from `bidesk` |
 | Corrections to the plan: 3 municipal tenders had no solicitation (Leduc, Wood Buffalo, Spruce Grove), not 4; both Griesbach tenders had a notice tagged as the solicitation; Spruce Grove has 1 addendum, not 0 | Found by the manifest review before ingest |
+
+## Ingest, story 1.9 (2026-10-30)
+
+| Decision | Why |
+| --- | --- |
+| `PostgresSpanSink` (`governance/audit.py`) is built now, not in a later story | Ingest makes the first real model calls. `llm.embed` refuses to run without a sink, and with only `MemorySink` neither the spans nor the spend cap would outlive the process |
+| The sink writes on its own autocommit connection, and its errors propagate | A span written inside ingest's transaction would vanish on rollback, though the call was paid for; an unlogged paid call breaks "nothing runs unlogged" |
+| Both sinks count the spend cap from `tracing.start_of_today()`, midnight in Edmonton | One definition; a span from 23:30 the night before (after midnight UTC) doesn't count |
+| Ingest runs as `make ingest TENDER=<id>` through `bidesk/cli.py`, not `python -m bidesk.ingest` | Only a composition root may register the sink, and `ingest` sits below `governance` |
+| The dev command refuses any tender not in the gitignored `data/non-holdout.txt`, and refuses everything if the file is missing or empty | Claude Code's deny rules don't stop a Python process, so this is the only thing keeping holdout PDFs out of the database (holdout tenders are ingested only for `make eval-holdout`) |
+| The guard lives in `cli.py` only; `ingest_tender()` has none | The upload route (4.3) and `make eval-holdout` (5.6) call it directly, so production never needs the list |
+| Chunks are word windows: 600 words with 75 overlap, version `w600-o75` | About 800 tokens with 100 overlap, with no tokenizer dependency. Voyage runs with `truncation=False`, so an over-long chunk fails loudly. Swap for a tokenizer if the retrieval evals ask for it |
+| Embedding batches are 64 chunks | voyage-4 allows 1,000 texts and 320K tokens per request; 64 chunks stay far below both |
+| Rerunning skips files already stored unchanged, and errors if a stored file's sha256, role or addendum number differs from the manifest | Skipping a re-tagged file would leave the database out of step with the labels. Re-ingest and re-chunking come when they're needed |
+| Each file is stored in one transaction, opened only after its embeddings return | No transaction stays open across network calls. If storing fails, the embeddings are paid again on the rerun: pennies |
+| Ingest uses `psycopg.AsyncConnection`; `db.py` (migrations) stays sync. This settles "an async pool comes with the first async caller" from the database section | Ingest awaits Voyage, so its database calls are async too. A pool waits for the API |
+| PyMuPDF is pinned to 1.26.5 | It has no dependencies; 2.x pulls in onnxruntime and more |
+| `make ingest` needs both API keys | It builds the app's one `LLM` client, which holds both; ingest itself calls only Voyage |

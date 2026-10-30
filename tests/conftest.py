@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import re
 from collections.abc import Iterator
 from decimal import Decimal
@@ -8,9 +9,12 @@ from types import SimpleNamespace
 from typing import Any
 
 import httpx2
+import psycopg
 import pytest
+from psycopg.conninfo import make_conninfo
 
 from bidesk import tracing
+from bidesk.db import migrate, migration_files
 from bidesk.llm import LLM
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -78,9 +82,13 @@ class FakeVoyage:
         self.queue: list[httpx2.Response | Exception] = []
         self.calls: list[dict[str, Any]] = []
         self.client = httpx2.AsyncClient(transport=httpx2.MockTransport(self._handle))
+        self.auto_dim: int | None = None  # with an empty queue, answer every text with this size
 
     def _handle(self, request: httpx2.Request) -> httpx2.Response:
-        self.calls.append({"url": str(request.url), "body": json.loads(request.content)})
+        body = json.loads(request.content)
+        self.calls.append({"url": str(request.url), "body": body})
+        if not self.queue and self.auto_dim:
+            return voyage_result([[0.5] * self.auto_dim for _ in body["input"]])
         item = self.queue.pop(0)
         if isinstance(item, Exception):
             raise item
@@ -113,3 +121,22 @@ def fake_voyage() -> FakeVoyage:
 @pytest.fixture
 def llm(fake_anthropic: FakeAnthropic, fake_voyage: FakeVoyage) -> LLM:
     return LLM(fake_anthropic, fake_voyage.client, Decimal("2.00"))  # type: ignore[arg-type]
+
+
+TEST_DB = "bidesk_test"
+
+
+@pytest.fixture(scope="session")
+def test_url() -> str:
+    """A `bidesk_test` database, rebuilt from the migrations once per test session."""
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        # Fail, not skip: otherwise `make test-db` (and its CI job) passes with nothing tested.
+        pytest.fail("DATABASE_URL is not set; run `make db-up` and `make test-db`")
+    admin = make_conninfo(url, dbname="postgres")
+    with psycopg.connect(admin, autocommit=True) as conn:
+        conn.execute(f"DROP DATABASE IF EXISTS {TEST_DB} WITH (FORCE)")
+        conn.execute(f"CREATE DATABASE {TEST_DB}")
+    test = make_conninfo(url, dbname=TEST_DB)
+    assert migrate(test) == [p.name for p in migration_files()]
+    return test

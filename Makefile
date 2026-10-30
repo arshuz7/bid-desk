@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: install lint format test test-db schema check-manifest validate-labels label-template db-up db-down migrate extract eval eval-holdout
+.PHONY: install lint format test test-db schema check-manifest validate-labels label-template db-up db-down migrate ingest ingest-dev extract eval eval-holdout
 
 install:
 	uv sync
@@ -46,6 +46,15 @@ db-down:
 
 migrate:
 	uv run python -m bidesk.db migrate
+
+# Dev corpus only: refuses any tender not in the gitignored data/non-holdout.txt.
+ingest:
+	@test -n "$(TENDER)" || { echo "usage: make ingest TENDER=<tender_id>" >&2; exit 1; }
+	uv run python -m bidesk.cli ingest $(TENDER)
+
+ingest-dev:
+	@test -s data/non-holdout.txt || { echo "data/non-holdout.txt is missing or empty" >&2; exit 1; }
+	uv run python -m bidesk.cli ingest $$(grep -v '^#' data/non-holdout.txt)
 
 extract:
 	@echo "make extract is not implemented until story 2.4" >&2
