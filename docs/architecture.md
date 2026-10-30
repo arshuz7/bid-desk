@@ -14,8 +14,9 @@ How Bid Desk is built, and the rules every change must keep. Decisions and their
 4. **`FIELD_SPECS` is the single source of truth for fields.** Prompts, workers, storage, labels
    and scorers are all driven by it. Adding a field means adding one entry, then following the
    `add-extraction-field` skill.
-5. **Governance records are append-only.** Runs, spans and review decisions are never updated or
-   deleted. Current state comes from views.
+5. **Governance records are append-only.** Spans and review decisions are never updated or
+   deleted; a run changes exactly once, from running to succeeded or failed. Database triggers
+   enforce both. Current state comes from views.
 6. **Deterministic checks run before LLM checks.** After them comes one bounded retry, then a
    human. Cost can't run away.
 7. **Humans decide.** Draft uses only accepted or human-approved fields. The system never submits,
@@ -97,16 +98,19 @@ document too.
 | `documents` | `id`, `tender_id` FK, `file`, `role` (solicitation, addendum, appendix, specifications, drawings, reference), `addendum_no`, `issued_on`, `sha256`, `page_count`, `scanned`; UNIQUE (`tender_id`, `sha256`) |
 | `pages` | (`document_id`, `page_no`) PK, `printed_label`, `text`, `has_text`. Page text is stored so grounding and highlighting never re-parse the PDF |
 | `chunks` | `id`, `document_id` FK, `chunk_index`, `page_start`, `page_end`, `text`, `tsv` (generated, `simple` config), `embedding vector(1024)`, `embedding_model`, `chunker_version` |
-| `runs` | `id`, `tender_id` FK, `kind` (extract, ask, draft), `pipeline` (baseline, workers, workers_verifier), `git_sha`, `config` jsonb, `status`, `started_at`, `finished_at`, `cost_usd`, `eval_run_id` FK null |
-| `spans` | `id`, `run_id` FK, `parent_span_id` FK to spans, `agent`, `name`, `prompt_id`, `prompt_version`, `model`, `input` jsonb, `retrieved_chunk_ids` bigint[], `raw_output`, `parsed_output` jsonb, `tokens_in`, `tokens_out`, `cost_usd`, `latency_ms`, `status`, `error`, `started_at` |
-| `extracted_fields` | `id`, `run_id` FK, `field_name`, `status`, `value` jsonb, `evidence` jsonb, `confidence`, `signals` jsonb, `attempt`, `span_id` FK, `review_state`; UNIQUE (`run_id`, `field_name`) |
-| `review_decisions` | `id`, `extracted_field_id` FK, `decision` (accept, edit, reject), `edited_value` jsonb, `reviewer`, `decided_at`, `note`, `exported_to_eval` |
+| `runs` | `id`, `tender_id` FK, `kind` (extract, ask, draft), `pipeline` (baseline, workers, workers_verifier), `git_sha`, `config` jsonb, `status`, `started_at`, `finished_at`, `cost_usd`, `eval_run_id` FK null. Changes once: `running` → `succeeded`/`failed`, setting `finished_at` and `cost_usd` |
+| `spans` | `id`, `run_id` FK (null outside a run), `parent_span_id` (no FK: a parent is written after its children), `agent`, `name`, `prompt_id`, `prompt_version`, `model`, `input` jsonb, `retrieved_chunk_ids` bigint[], `raw_output`, `parsed_output` jsonb, `tokens_in`, `tokens_out`, `cost_usd`, `latency_ms`, `status`, `error`, `started_at` |
+| `extracted_fields` | `id`, `run_id` FK, `field_name`, `status`, `value` jsonb, `evidence` jsonb, `confidence`, `signals` jsonb, `attempt`, `span_id` FK, `review_state` (`pending` or `auto_accepted`, set by governance when stored); UNIQUE (`run_id`, `field_name`) |
+| `review_decisions` | `id`, `seq` (orders decisions exactly), `extracted_field_id` FK, `decision` (accept, edit, reject), `edited_value` jsonb, `reviewer`, `decided_at`, `note` |
 | `eval_runs` | `id`, `split` (smoke, dev, holdout), `git_sha`, `pipeline`, `prompt_versions` jsonb, `results_path`, `summary` jsonb, `cost_usd`, `started_at` |
 
 Views:
-- `approved_fields` takes each tender's latest extract run and the latest decision per field. It
-  is the only thing Draft reads.
-- `review_queue` lists pending fields under the confidence threshold.
+- `approved_fields` takes each tender's latest successful extract run. A field is approved when
+  its latest decision is accept or edit (an edit's value replaces the extracted one), or when it
+  was auto-accepted and nobody rejected it. It is the only thing Draft reads.
+- `review_queue` lists the latest run's `pending` fields that have no decision yet, lowest
+  confidence first.
+- Helpers: `latest_extract_runs` and `latest_decisions`.
 
 Indexes:
 - `chunks (document_id)` for one-tender retrieval

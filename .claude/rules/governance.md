@@ -11,8 +11,10 @@ paths:
 
 - Never remove, skip or bypass span logging or the $2/day spend cap, including in tests, retries
   and error paths. A call over the cap raises before it reaches the API.
-- `runs`, `spans` and `review_decisions` are append-only. No `UPDATE` or `DELETE` on them, in
-  code or in migrations. Current state comes from views (`approved_fields`, `review_queue`).
+- `spans` and `review_decisions` are append-only: no `UPDATE` or `DELETE`, in code or in
+  migrations. A run changes exactly once, from `running` to `succeeded` or `failed` (setting
+  `finished_at` and `cost_usd`). Triggers in `sql/0001_init.sql` enforce both; never drop them.
+  Current state comes from views (`approved_fields`, `review_queue`).
 - `llm.py` is the only module that imports `anthropic` or `voyageai`. It reports spans through
   `tracing` and never imports `governance`; the composition root registers the sink.
 - `confidence` and `signals` are set here, never by the model.

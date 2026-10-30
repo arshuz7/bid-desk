@@ -6,6 +6,8 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "anthropic>=2.1.0",
+    "httpx2>=2.16",
+    "psycopg[binary]>=3.2",
     "pydantic>=2.14",
 ]
 
@@ -48,7 +50,7 @@ layers = [
     "(pipeline)",
     "(governance)",
     "(ingest) | (retrieval)",
-    "(llm)",
-    "(db) | (tracing)",
-    "(config) | schemas",
+    "llm",
+    "db | tracing",
+    "config | schemas",
 ]

@@ -1,4 +1,7 @@
-.PHONY: install lint format test schema validate-labels label-template db-up db-down migrate extract eval eval-holdout
+-include .env
+export
+
+.PHONY: install lint format test test-db schema validate-labels label-template db-up db-down migrate extract eval eval-holdout
 
 install:
 	uv sync
@@ -15,6 +18,9 @@ format:
 test:
 	uv run pytest -m "not db"
 
+test-db:
+	uv run pytest -m db
+
 schema:
 	uv run python -c "import json; from bidesk.schemas.labels import label_json_schema; print(json.dumps(label_json_schema(), indent=2))" > data/labels/label.schema.json
 	uv run python -c "import json; from bidesk.schemas.labels import ask_json_schema; print(json.dumps(ask_json_schema(), indent=2))" > data/labels/ask.schema.json
@@ -28,19 +34,15 @@ label-template:
 	@test -n "$(TENDER)" || { echo "usage: make label-template TENDER=<tender_id> [OUT=<dir>]" >&2; exit 1; }
 	uv run python -m bidesk.evals.label_template $(TENDER) --out $(OUT)
 
-db-up: .env
+db-up:
+	@test -f .env || { echo "Missing .env: copy .env.example to .env and fill it in." >&2; exit 1; }
 	docker compose up -d --wait db
 
 db-down:
 	docker compose down
 
-.env:
-	@echo "Missing .env: copy .env.example to .env and fill it in." >&2
-	@exit 1
-
 migrate:
-	@echo "make migrate is not implemented until story 1.7" >&2
-	@exit 1
+	uv run python -m bidesk.db migrate
 
 extract:
 	@echo "make extract is not implemented until story 2.4" >&2

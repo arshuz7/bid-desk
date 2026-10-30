@@ -113,6 +113,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     args = parser.parse_args(argv)
 
+    if not args.dir.is_dir():
+        parser.error(f"no such folder: {args.dir}")
     manifest = load_manifest(args.manifest)
     all_json = sorted(args.dir.glob("*.json"))
     ask_files = [p for p in all_json if p.name.endswith(ASK_SUFFIX)]

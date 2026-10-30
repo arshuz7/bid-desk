@@ -4,6 +4,9 @@ Every call is checked against the daily spend cap before it reaches the API, and
 span with tokens, cost, latency and the raw output, whether it succeeds or fails.
 """
 
+import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Literal
@@ -93,20 +96,45 @@ class LLM:
         self,
         anthropic_client: AsyncAnthropic,
         voyage_client: httpx2.AsyncClient,
-        daily_cap_usd: Decimal = Decimal("2.00"),
+        daily_cap_usd: Decimal,  # from config.daily_cap_usd()
     ) -> None:
         self._anthropic = anthropic_client
         self._voyage = voyage_client
         self.daily_cap_usd = daily_cap_usd
+        # Worst-case cost of calls in flight. Spans are written only when a call ends, so
+        # without this, calls started together would all pass the cap check.
+        # shortcut: reservations are per process. If two processes ever spend at once (say the
+        # API server and `make eval`), move this to a Postgres advisory lock.
+        self._reserved = Decimal(0)
+        self._lock = asyncio.Lock()
 
-    async def _check_cap(self, record: SpanRecord, estimate: Decimal) -> None:
-        spent = await get_sink().spent_today()
-        if spent + estimate > self.daily_cap_usd:
-            record.status = "cap_exceeded"
-            raise SpendCapExceeded(
-                f"spent ${spent:.4f} today; this call could cost up to ${estimate:.4f}, "
-                f"over the ${self.daily_cap_usd} daily cap"
-            )
+    async def _reserve(self, record: SpanRecord, estimate: Decimal) -> Decimal:
+        async with self._lock:
+            spent = await get_sink().spent_today()
+            if spent + self._reserved + estimate > self.daily_cap_usd:
+                record.status = "cap_exceeded"
+                raise SpendCapExceeded(
+                    f"spent ${spent:.4f} today with ${self._reserved:.4f} in flight; this call "
+                    f"could cost up to ${estimate:.4f}, over the ${self.daily_cap_usd} daily cap"
+                )
+            self._reserved += estimate
+        return estimate
+
+    @asynccontextmanager
+    async def _metered(
+        self, estimate: Decimal, name: str, **fields: object
+    ) -> AsyncIterator[SpanRecord]:
+        """A span whose call is held to the daily cap. The reservation is released only after
+        the span, with its real cost, has been written."""
+        reserved = Decimal(0)
+        try:
+            async with span(name, **fields) as record:
+                reserved = await self._reserve(record, estimate)
+                yield record
+        finally:
+            # No lock and no await: a plain subtraction can't be interrupted, so a cancelled
+            # call always gives its reservation back.
+            self._reserved -= reserved
 
     async def extract[T: BaseModel](
         self,
@@ -130,14 +158,14 @@ class LLM:
             "max_tokens": max_tokens,
             "effort": effort,
         }
-        async with span(
+        async with self._metered(
+            estimate,
             "claude",
             prompt_id=prompt_id,
             prompt_version=prompt_version,
             model=model,
             input=request_input,
         ) as record:
-            await self._check_cap(record, estimate)
             try:
                 response = await self._anthropic.messages.create(
                     model=model,
@@ -180,12 +208,12 @@ class LLM:
         if not texts:
             return []
         estimate = estimate_tokens(*texts) * VOYAGE_PRICE_PER_M / MILLION
-        async with span(
+        async with self._metered(
+            estimate,
             "voyage",
             model=VOYAGE_MODEL,
             input={"input_type": input_type, "count": len(texts)},
         ) as record:
-            await self._check_cap(record, estimate)
             try:
                 response = await self._voyage.post(
                     VOYAGE_URL,

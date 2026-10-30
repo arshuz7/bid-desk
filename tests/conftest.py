@@ -1,6 +1,8 @@
+import asyncio
 import json
 import re
 from collections.abc import Iterator
+from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -52,6 +54,7 @@ class FakeAnthropic:
     def __init__(self) -> None:
         self.queue: list[object] = []
         self.calls: list[dict[str, Any]] = []
+        self.gate: asyncio.Event | None = None  # if set, calls wait here until it opens
 
     @property
     def messages(self) -> "FakeAnthropic":
@@ -59,6 +62,9 @@ class FakeAnthropic:
 
     async def create(self, **kwargs: Any) -> object:  # noqa: ANN401
         self.calls.append(kwargs)
+        await asyncio.sleep(0)  # like the network: lets calls started together overlap
+        if self.gate is not None:
+            await self.gate.wait()
         item = self.queue.pop(0)
         if isinstance(item, BaseException):
             raise item
@@ -106,4 +112,4 @@ def fake_voyage() -> FakeVoyage:
 
 @pytest.fixture
 def llm(fake_anthropic: FakeAnthropic, fake_voyage: FakeVoyage) -> LLM:
-    return LLM(fake_anthropic, fake_voyage.client)  # type: ignore[arg-type]
+    return LLM(fake_anthropic, fake_voyage.client, Decimal("2.00"))  # type: ignore[arg-type]
