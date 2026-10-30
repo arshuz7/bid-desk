@@ -207,3 +207,17 @@ Decided after a three-analyst design review on 2026-10-10. The schema is in
 | Ingest uses `psycopg.AsyncConnection`; `db.py` (migrations) stays sync. This settles "an async pool comes with the first async caller" from the database section | Ingest awaits Voyage, so its database calls are async too. A pool waits for the API |
 | PyMuPDF is pinned to 1.26.5 | It has no dependencies; 2.x pulls in onnxruntime and more |
 | `make ingest` needs both API keys | It builds the app's one `LLM` client, which holds both; ingest itself calls only Voyage |
+
+## Retrieval, story 3.1 (2026-10-30)
+
+| Decision | Why |
+| --- | --- |
+| The full-text side ORs the query's terms after dropping about 45 English stopwords, through `plainto_tsquery('simple', …)` with `&` turned into `|` | A question's words are rarely all on one chunk, so AND finds nothing. The locked `simple` config keeps stopwords and `ts_rank_cd` has no IDF, so "the" would rank every chunk. Postgres's own parser splits a bid number the same way as the stored `tsv` |
+| When the query has an ID-like token, full text searches for those tokens alone, at double weight. An ID is 2+ capitals (COR, CCDC) or a token with a digit and either a letter or 3+ characters (RFT-2021-551, 5P468, 2026); a bare short number ("addendum 3", "November 5", "10%") and stopwords are not | Found on the real Wood Buffalo tender: in "Is a COR required?", "required" matched hundreds of chunks and buried all 7 COR chunks. With the ID alone, 7 of the top 8 contain COR. The vector side still reads the whole question. Short numbers would match every date and page number (bid-desk-54 review). The 2.0 weight is a guess, to tune against the Ask eval |
+| Ranks use `row_number()` ordered by score then chunk id, and the fused list orders by score then chunk id | The same query always returns the same chunks in the same order, so evals and tests are repeatable |
+| Each search is a `retrieve` span with `retrieved_chunk_ids`; the query embedding nests under it | The Trace view can show which chunks a question saw. In 3.2, the Ask/worker span also records the chunk ids actually put in its prompt |
+| `Hit` carries role and addendum number; reconciler-lite (prefix and ordering) is applied by the pipeline when it builds a prompt | Retrieval returns the best chunks by relevance; ordering them by addendum is a prompt concern |
+| No `chunker_version` filter yet | Ingest never re-chunks, so each document has one version; add the filter with re-chunking |
+| `make search` goes through the same dev allowlist as `make ingest` | `make eval-holdout` puts holdout tenders into the same database, and the deny rules don't cover database rows. Every command that reads tender content uses the guard |
+| Asking about a tender's own bid number is a weak query | Its bid number is on nearly every page header, so it matches everything. Noted from the real run |
+

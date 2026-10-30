@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: install lint format test test-db schema check-manifest validate-labels label-template db-up db-down migrate ingest ingest-dev extract eval eval-holdout
+.PHONY: install lint format test test-db schema check-manifest validate-labels label-template db-up db-down migrate ingest ingest-dev search extract eval eval-holdout
 
 install:
 	uv sync
@@ -55,6 +55,10 @@ ingest:
 ingest-dev:
 	@test -s data/non-holdout.txt || { echo "data/non-holdout.txt is missing or empty" >&2; exit 1; }
 	uv run python -m bidesk.cli ingest $$(grep -v '^#' data/non-holdout.txt)
+
+search:
+	@test -n "$(TENDER)" -a -n "$(Q)" || { echo 'usage: make search TENDER=<tender_id> Q="question"' >&2; exit 1; }
+	uv run python -m bidesk.cli search $(TENDER) "$(Q)"
 
 extract:
 	@echo "make extract is not implemented until story 2.4" >&2

@@ -222,7 +222,7 @@ checks.
 - Hybrid search takes the top 20 by vector and the top 20 by full text, merges them with
   reciprocal rank fusion (k = 60), and returns the top 8.
 - When the query contains an ID-like token (a bid number, "COR", a CCDC clause), full text
-  gets extra weight. Tune this against the Ask eval.
+  searches for those tokens alone and gets double weight. Tune this against the Ask eval.
 - Scanned pages with no text layer are stored with `has_text = false` and are never retrieved.
   OCR is a stretch goal.
 - **Document scope.** Labellers search, and retrieval indexes, the same document roles:
