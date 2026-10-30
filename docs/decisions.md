@@ -154,3 +154,23 @@ Decided after a three-analyst design review on 2026-10-10. The schema is in
 | Ask questions live in `<tender_id>.ask.json` next to the label: exactly 3, at least one `not_stated`, each `found` one with an answer and one `{file, page}`; `make validate-labels` reports a label with no Ask file | The label format rejects unknown keys and stays locked; a separate file keeps both simple |
 | Ask reference answers name a role, never a person's name, email or phone | Dev Ask files are committed to a repo that goes public (decision O7) |
 | `FieldSpec.labelled`: `tender_contact` is in `WorkerFields` and `TenderFields` but not in the label models; drift tests check both sets | Implements O7 (B4) without touching the label format |
+
+## Database (2026-10-29)
+
+| Decision | Why |
+| --- | --- |
+| A run changes exactly once, from `running` to `succeeded` or `failed`, setting `finished_at` and `cost_usd`; every other update or delete on `runs`, and any change to `spans` or `review_decisions`, is rejected by a trigger | A run row is written when it starts so the UI can poll its status, so it must finish somehow. One allowed change keeps the audit guarantee without a separate run-events table. Triggers enforce what a convention only asks for |
+| `spans.parent_span_id` has no foreign key | A span is written when it ends, so a parent span is stored after its children and a foreign key would reject them |
+| `review_decisions` has no `exported_to_eval` flag, and gets `seq` for ordering | Setting the flag later would update an append-only table; export tracking can come later as its own rows. `seq` orders decisions exactly when timestamps tie |
+| `extracted_fields.review_state` is `pending` or `auto_accepted`, set once when stored; human decisions live only in `review_decisions` | The views work out current state; the threshold lives in governance code, not SQL |
+| Helper views `latest_extract_runs` and `latest_decisions` | Keep `approved_fields` and `review_queue` readable |
+| `migrate()` applies `sql/NNNN_*.sql` in order, each in its own transaction, recorded in `schema_migrations` | Re-running is a no-op; a failed migration leaves nothing half-applied |
+| psycopg 3, sync for now; `config.py` is two functions, `database_url()` and `daily_cap_usd()`; the Makefile loads `.env` (so values can't contain `$` or `#`) | The simplest thing that works; an async pool comes with the first async caller |
+| Database tests are marked `db`, use a separate `bidesk_test` database rebuilt each session, and run in their own CI job against a pgvector service | `make test` stays offline; the real database is never touched by tests |
+| `LLM` reserves each call's worst-case cost under a lock before calling and releases it after the span, with its real cost, is written; the cap check counts today's spans plus what is in flight | Found in a peer-session audit: spans are written only when a call ends, so calls started together (the workers) all passed the cap check. The reservation is per process; two separate processes running at once could still overshoot, which is acceptable for one developer |
+| In `approved_fields`, an edit makes the field `found`, whatever the model said | A reviewer who fills in a field the model marked `not_stated` is supplying the value; fixed before `0001_init.sql` reached `main`, so no second migration was needed |
+| Migrations are recorded by their 4-digit number, not the file name | Renaming an applied file would otherwise re-run it |
+| The spend cap comes from `BIDESK_DAILY_SPEND_CAP_USD` (default `2.00`) through `config.daily_cap_usd()`, rejecting non-positive or non-numeric values | The `.env.example` setting was not read anywhere |
+| `make validate-labels` on a folder that doesn't exist is an error | It used to report "0 checked" and pass, which would hide a typo in the holdout path |
+| `httpx2` is a declared dependency | `llm.py` imports it directly; it was only installed because the Anthropic SDK depends on it |
+| A reservation is released with a plain subtraction, no lock and no await; `LLM` has no default cap, so callers pass `config.daily_cap_usd()` | From the re-audit: a call cancelled twice while another call held the lock (a task group being cancelled) never released its reservation. One cap default in one place |

@@ -23,7 +23,8 @@ Read before planning any change:
 - Commit anything from `data/raw/`, or any tender PDF. The terms allow private eval use only.
 - Call a model or embeddings API anywhere except `src/bidesk/llm.py`.
 - Remove or bypass span logging or the spend cap.
-- Update or delete rows in `runs`, `spans` or `review_decisions`. They are append-only.
+- Update or delete rows in `spans` or `review_decisions`, or change a run except its one move
+  from running to finished. Database triggers enforce this.
 - Put secrets in code, tests, fixtures or logs.
 
 ## Locked decisions

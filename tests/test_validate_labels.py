@@ -176,3 +176,12 @@ def test_main_exit_codes(
 
     write_label(tmp_path, {**label, "tender_id": "other-tender"})
     assert main(args) == 1
+
+
+def test_a_missing_folder_is_an_error_not_an_empty_pass(
+    tmp_path: Path, manifest: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main([str(tmp_path / "typo"), "--manifest", str(manifest)])
+    assert exc.value.code == 2
+    assert "no such folder" in capsys.readouterr().err

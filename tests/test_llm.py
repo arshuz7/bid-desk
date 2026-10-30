@@ -18,6 +18,7 @@ from bidesk.llm import (
     LLMCallFailed,
     SpendCapExceeded,
     claude_cost,
+    estimate_tokens,
 )
 from bidesk.schemas.fields import WorkerField
 from bidesk.tracing import MemorySink, SpanRecord
@@ -40,6 +41,19 @@ def extract(llm: LLM, output_model: type[BaseModel] = Title, **overrides: object
     }
     kwargs.update(overrides)
     return asyncio.run(llm.extract(**kwargs))  # type: ignore[arg-type]
+
+
+async def llm_extract(llm: LLM) -> BaseModel:
+    return await llm.extract(
+        prompt_id="baseline",
+        prompt_version=1,
+        model=HAIKU,
+        system="Extract the title.",
+        user="TENDER TEXT",
+        output_model=Title,
+        max_tokens=1_000,
+        effort="low",
+    )
 
 
 # Cost
@@ -151,6 +165,60 @@ def test_under_the_cap_the_call_goes_through(
     fake_anthropic.queue.append(claude_response('{"title": "Bridge"}'))
     extract(llm)
     assert len(fake_anthropic.calls) == 1
+
+
+def test_calls_started_together_cannot_overshoot_the_cap(
+    fake_anthropic: FakeAnthropic, fake_voyage: FakeVoyage, sink: MemorySink
+) -> None:
+    # The cap fits the worst case of two calls but not three. Without reserving in-flight
+    # cost, all three would see $0 spent and pass.
+    worst_case = claude_cost(HAIKU, estimate_tokens("Extract the title.", "TENDER TEXT"), 1_000)
+    capped = LLM(fake_anthropic, fake_voyage.client, daily_cap_usd=worst_case * 2)  # type: ignore[arg-type]
+    fake_anthropic.queue.extend(claude_response('{"title": "Bridge"}') for _ in range(3))
+
+    async def three_at_once() -> list[object]:
+        return await asyncio.gather(
+            *(llm_extract(capped) for _ in range(3)), return_exceptions=True
+        )
+
+    results = asyncio.run(three_at_once())
+    assert sum(isinstance(r, SpendCapExceeded) for r in results) == 1
+    assert len(fake_anthropic.calls) == 2
+    assert capped._reserved == 0  # every reservation was released
+
+
+def test_a_cancelled_call_gives_its_reservation_back_even_while_the_lock_is_held(
+    llm: LLM, fake_anthropic: FakeAnthropic, sink: MemorySink
+) -> None:
+    # Cancelling a group of workers can hit a call while another holds the lock; its
+    # reservation must still be released, or later calls would be refused for no reason.
+    fake_anthropic.queue.append(claude_response('{"title": "Bridge"}'))
+
+    async def scenario() -> None:
+        fake_anthropic.gate = asyncio.Event()  # hold the API call open
+        call = asyncio.create_task(llm_extract(llm))
+        while not fake_anthropic.calls:  # wait until the call has reserved and started
+            await asyncio.sleep(0)
+        assert llm._reserved > 0
+        async with llm._lock:  # another worker is checking the cap
+            call.cancel()
+            await asyncio.sleep(0)
+            call.cancel()  # cancelled again, e.g. by a task group
+            await asyncio.sleep(0)
+        with pytest.raises(asyncio.CancelledError):
+            await call
+
+    asyncio.run(scenario())
+    assert llm._reserved == 0
+
+
+def test_reservations_are_released_after_failures(
+    llm: LLM, fake_anthropic: FakeAnthropic, sink: MemorySink
+) -> None:
+    fake_anthropic.queue.append(claude_response("not json"))
+    with pytest.raises(LLMCallFailed):
+        extract(llm)
+    assert llm._reserved == 0
 
 
 def test_unknown_model_raises_before_any_call(
