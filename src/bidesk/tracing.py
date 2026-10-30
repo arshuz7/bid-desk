@@ -46,6 +46,11 @@ class SpanRecord:
     started_at: datetime = field(default_factory=lambda: datetime.now(EDMONTON))
 
 
+def start_of_today() -> datetime:
+    """Midnight today, America/Edmonton: where the daily spend cap resets."""
+    return datetime.now(EDMONTON).replace(hour=0, minute=0, second=0, microsecond=0)
+
+
 class SpanSink(Protocol):
     async def emit(self, record: SpanRecord) -> None: ...
 
@@ -68,11 +73,8 @@ class MemorySink:
         self.records.append(record)
 
     async def spent_today(self) -> Decimal:
-        today = datetime.now(EDMONTON).date()
-        return sum(
-            (r.cost_usd for r in self.records if r.started_at.astimezone(EDMONTON).date() == today),
-            Decimal(0),
-        )
+        since = start_of_today()
+        return sum((r.cost_usd for r in self.records if r.started_at >= since), Decimal(0))
 
 
 _sink: SpanSink | None = None

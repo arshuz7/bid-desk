@@ -4,7 +4,6 @@ They use a separate `bidesk_test` database, rebuilt from the migrations for each
 """
 
 import json
-import os
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -12,13 +11,12 @@ from uuid import UUID, uuid4
 
 import psycopg
 import pytest
-from psycopg.conninfo import conninfo_to_dict, make_conninfo
+from psycopg.conninfo import conninfo_to_dict
 
 from bidesk.db import migrate, migration_files
 
 pytestmark = pytest.mark.db
 
-TEST_DB = "bidesk_test"
 TABLES = {
     "tenders",
     "documents",
@@ -34,21 +32,6 @@ TABLES = {
 VIEWS = {"approved_fields", "review_queue", "latest_extract_runs", "latest_decisions"}
 
 
-@pytest.fixture(scope="session")
-def test_url() -> str:
-    url = os.environ.get("DATABASE_URL")
-    if not url:
-        # Fail, not skip: otherwise `make test-db` (and its CI job) passes with nothing tested.
-        pytest.fail("DATABASE_URL is not set; run `make db-up` and `make test-db`")
-    admin = make_conninfo(url, dbname="postgres")
-    with psycopg.connect(admin, autocommit=True) as conn:
-        conn.execute(f"DROP DATABASE IF EXISTS {TEST_DB} WITH (FORCE)")
-        conn.execute(f"CREATE DATABASE {TEST_DB}")
-    test = make_conninfo(url, dbname=TEST_DB)
-    assert migrate(test) == [p.name for p in migration_files()]
-    return test
-
-
 @pytest.fixture
 def conn(test_url: str) -> Iterator[psycopg.Connection]:
     """A connection whose work is rolled back after each test."""
@@ -58,7 +41,7 @@ def conn(test_url: str) -> Iterator[psycopg.Connection]:
 
 
 def test_test_database_is_not_the_real_one(test_url: str) -> None:
-    assert conninfo_to_dict(test_url)["dbname"] == TEST_DB
+    assert conninfo_to_dict(test_url)["dbname"] == "bidesk_test"
 
 
 # Exit check: every table and view exists

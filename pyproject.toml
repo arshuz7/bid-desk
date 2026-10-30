@@ -9,6 +9,7 @@ dependencies = [
     "httpx2>=2.16",
     "psycopg[binary]>=3.2",
     "pydantic>=2.14",
+    "pymupdf==1.26.5",
 ]
 
 [dependency-groups]
@@ -45,11 +46,11 @@ type = "layers"
 containers = ["bidesk"]
 # Parentheses mark layers that don't exist yet.
 layers = [
-    "(api)",
+    "(api) | cli",
     "evals",
     "(pipeline)",
-    "(governance)",
-    "(ingest) | (retrieval)",
+    "governance",
+    "ingest | (retrieval)",
     "llm",
     "db | tracing",
     "config | schemas | manifest",

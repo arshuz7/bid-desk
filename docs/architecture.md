@@ -56,6 +56,7 @@ src/bidesk/
 ├── pipeline/          # baseline.py, workers.py, verifier.py, ask.py, draft.py
 ├── evals/             # scorers.py, run_extract.py, run_ask.py
 ├── prompts/           # <prompt_id>/v<N>.md, versioned files shipped with the package
+├── cli.py             # command-line entry points (make ingest); a composition root
 └── api.py             # FastAPI app, the composition root
 ui/app.py              # Streamlit, HTTP client of api.py
 sql/                   # numbered migrations, 0001_init.sql first
@@ -71,7 +72,7 @@ config, schemas
   -> governance
   -> pipeline
   -> evals
-  -> api            (composition root; also the CLI entry points and the eval runner)
+  -> api, cli       (composition roots: they register the span sink and build the model client)
 ui -> schemas only, everything else over HTTP
 ```
 

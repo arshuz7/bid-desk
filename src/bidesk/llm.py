@@ -85,6 +85,10 @@ def estimate_tokens(*texts: str) -> int:
     return sum(len(t) for t in texts) // CHARS_PER_TOKEN_ESTIMATE + 1
 
 
+def anthropic_client(api_key: str) -> AsyncAnthropic:
+    return AsyncAnthropic(api_key=api_key)
+
+
 def voyage_client(api_key: str) -> httpx2.AsyncClient:
     """An HTTP client for the Voyage API. The voyageai SDK is avoided because it pulls in
     LangChain, numpy, pillow and tokenizers for what is one POST request."""
@@ -230,6 +234,10 @@ class LLM:
                 total_tokens = int(body["usage"]["total_tokens"])
                 data = sorted(body["data"], key=lambda item: item["index"])
                 vectors = [[float(x) for x in item["embedding"]] for item in data]
+            except httpx2.HTTPStatusError as e:
+                # Voyage's body says which limit or check failed; the status line alone doesn't.
+                detail = e.response.text[:300]
+                raise LLMCallFailed(f"Voyage API error {e.response.status_code}: {detail}") from e
             except httpx2.HTTPError as e:
                 raise LLMCallFailed(f"Voyage API error: {e}") from e
             except (ValueError, KeyError, TypeError) as e:
