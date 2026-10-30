@@ -50,7 +50,7 @@ layers = [
     "evals",
     "(pipeline)",
     "governance",
-    "ingest | (retrieval)",
+    "ingest | retrieval",
     "llm",
     "db | tracing",
     "config | schemas | manifest",

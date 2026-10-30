@@ -64,6 +64,7 @@ Defined in the Makefile once story 1.3 is done:
 - `make label-template TENDER=<id> OUT=<dir>`: start a label and an Ask file for one tender
 - `make ingest TENDER=<id>` / `make ingest-dev`: index tenders from `data/raw/`; refuses any tender
   not in the gitignored `data/non-holdout.txt`
+- `make search TENDER=<id> Q="question"`: hybrid search over one ingested tender (same allowlist)
 - `make extract TENDER=<id>`: run extraction on one tender
 - `make eval`: dev extraction and Ask evals; writes `evals/results/` and appends to `EVALS.md`
 - `make eval-holdout`: developer only
