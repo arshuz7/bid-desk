@@ -59,6 +59,7 @@ Defined in the Makefile once story 1.3 is done:
 - `make test`: fast tests, no network and no model calls
 - `make lint`: `ruff format --check`, `ruff check` and `lint-imports` (the layering contract)
 - `make schema`: regenerate `data/labels/label.schema.json` after a schema change
+- `make check-manifest`: check `data/manifest.csv` against the database rules (roles, addendum numbers)
 - `make validate-labels DIR=<dir>`: check label and Ask files against the schemas and the manifest
 - `make label-template TENDER=<id> OUT=<dir>`: start a label and an Ask file for one tender
 - `make extract TENDER=<id>`: run extraction on one tender

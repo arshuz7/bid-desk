@@ -95,7 +95,7 @@ document too.
 | Table | Key columns |
 | --- | --- |
 | `tenders` | `id` text PK (the manifest `tender_id`), title, entity, kind |
-| `documents` | `id`, `tender_id` FK, `file`, `role` (solicitation, addendum, appendix, specifications, drawings, reference), `addendum_no`, `issued_on`, `sha256`, `page_count`, `scanned`; UNIQUE (`tender_id`, `sha256`) |
+| `documents` | `id`, `tender_id` FK, `file`, `role` (solicitation, addendum, appendix, specifications, drawings, reference), `addendum_no`, `issued_on` (deferred, null for now), `sha256`, `page_count`, `scanned`; UNIQUE (`tender_id`, `sha256`) |
 | `pages` | (`document_id`, `page_no`) PK, `printed_label`, `text`, `has_text`. Page text is stored so grounding and highlighting never re-parse the PDF |
 | `chunks` | `id`, `document_id` FK, `chunk_index`, `page_start`, `page_end`, `text`, `tsv` (generated, `simple` config), `embedding vector(1024)`, `embedding_model`, `chunker_version` |
 | `runs` | `id`, `tender_id` FK, `kind` (extract, ask, draft), `pipeline` (baseline, workers, workers_verifier), `git_sha`, `config` jsonb, `status`, `started_at`, `finished_at`, `cost_usd`, `eval_run_id` FK null. Changes once: `running` → `succeeded`/`failed`, setting `finished_at` and `cost_usd` |
@@ -230,8 +230,8 @@ checks.
   never chunked or embedded. Scope is driven by `documents.role`, so labels and extraction
   can't drift apart. A combined package that is one PDF is tagged `solicitation` and indexed
   whole, and labellers search the whole file too.
-- **Reconciler-lite.** Each retrieved chunk is prefixed with its document role, addendum number
-  and issue date, and chunks are ordered by `addendum_no`. The worker prompts say that later
+- **Reconciler-lite.** Each retrieved chunk is prefixed with its document role and addendum
+  number, and chunks are ordered by `addendum_no`. The worker prompts say that later
   addenda supersede earlier text. Its effect is measured, not assumed: log it in EVALS.md
   using the addendum-changed slice. The full reconciler stays a stretch goal.
 

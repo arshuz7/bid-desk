@@ -11,6 +11,7 @@ are settled.
 | O2 | **What does CI's smoke eval run on?** Every file's terms note says "private eval use only, not redistributed", so no real tender can be committed or used in CI. | Write 5 synthetic tenders for `data/smoke/`, clearly labelled synthetic, and run the CI gate on them. Run real dev evals by hand or nightly on your machine. | CI smoke eval (Week 5) |
 | O3 | **What does the public demo show?** The same terms note rules out hosting real tenders. | Ship 2–3 synthetic tenders in the demo, and let visitors upload their own PDF. Use real tenders only in the recorded video, if the terms allow that use. | Week 5 deploy, Week 6 video |
 | O4 | **Is Azure for Students credit available?** | With credit: Postgres B1ms (12 months free). Without: Neon free tier. Both use Container Apps for the app. | Week 5 deploy |
+| O8 | **How do uploaded files get a role and an addendum number?** The manifest is typed by hand for the 25 eval tenders; a user uploading a tender has no manifest. | Guess each file's role and number from its first page ("Addendum No. 3") and file name, show the guesses on the upload screen for the user to confirm, and run the manifest checks as warnings ("addenda 1, 2 and 4 uploaded: is 3 missing?"). | Upload route and screen (4.3, 4.4) |
 | O5 | **Is the GitHub repo public now or from Week 3?** | Keep it private until Week 3. PDFs are gitignored, but check `data/manifest.csv` and early commits before going public. | Application (Week 3) |
 
 O1 (addenda) and O6 (scanned pages) were resolved on 2026-10-10; see
@@ -174,3 +175,17 @@ Decided after a three-analyst design review on 2026-10-10. The schema is in
 | `make validate-labels` on a folder that doesn't exist is an error | It used to report "0 checked" and pass, which would hide a typo in the holdout path |
 | `httpx2` is a declared dependency | `llm.py` imports it directly; it was only installed because the Anthropic SDK depends on it |
 | A reservation is released with a plain subtraction, no lock and no await; `LLM` has no default cap, so callers pass `config.daily_cap_usd()` | From the re-audit: a call cancelled twice while another call held the lock (a task group being cancelled) never released its reservation. One cap default in one place |
+
+## Manifest clean-up, story 1.8 (2026-10-30)
+
+| Decision | Why |
+| --- | --- |
+| When a file's role is unclear, it is in scope (`appendix`): supplementary conditions, statements of work, integrity provisions, hazard reports, bid forms | A wrongly excluded file hides its answer from labeller and extractor alike, and the eval can't see it (both say `not_stated`); a wrongly included one only adds chunks |
+| Notices and Q&A files that aren't addenda are `reference`: Griesbach notices 1 and 2 (both tenders) and the NRCan Q&A files | Griesbach notice 2 says it "does not form part of or amend the RFQ"; NRCan's amendments 001–004 only extend the closing date and never incorporate the Q&A. Matches the guide's Q&A rule |
+| A superseded file is `reference`: 26-0091's original statement of work (rev1 is `appendix`) | Two versions of the same requirements in scope would contradict each other, and reconciler-lite only orders addenda |
+| All 12 scanned files are `drawings`; this replaces "`drawings` or `reference`" from story 2.0 | Both roles are out of scope, so the split changes nothing, and telling plans from photos would mean reopening them |
+| `addendum_no` is typed into the manifest, not parsed from file names; `make check-manifest` requires 1..n with no gaps | Six naming styles, full of other numbers; 50 numbers typed once is cheaper than a parser, and the check catches typos and missing downloads |
+| `documents.issued_on` is deferred: the column stays and is null. Reconciler-lite orders by `addendum_no` and prefixes role and number only. This replaces the `issued_on` row in the field design review | No source records issue dates, and addendum numbers already give the order. Revisit if the addendum-changed slice shows ordering errors |
+| 26-0163: the row for `itt-26-0163a.pdf` is removed; `itt-26-0163a_0.pdf` is its corrected reissue | The original had a typo and was deleted from `data/raw/`. The manifest is now 125 files and 3,511 pages |
+| `bidesk.manifest` sits in the bottom layer with `config` and `schemas` | Ingest and the evals both read it, and it imports nothing from `bidesk` |
+| Corrections to the plan: 3 municipal tenders had no solicitation (Leduc, Wood Buffalo, Spruce Grove), not 4; both Griesbach tenders had a notice tagged as the solicitation; Spruce Grove has 1 addendum, not 0 | Found by the manifest review before ingest |

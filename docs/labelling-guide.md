@@ -11,7 +11,8 @@ All examples below are synthetic.
    question as `TODO`, which fails validation until you replace it. It never overwrites a file.
 1. Open every in-scope file of the tender: the solicitation, all addenda, appendices and
    Division 01 specifications. Skip drawings and reference files (directories, information-
-   session slides, background reports). Retrieval indexes the same roles, so a value you find
+   session slides, notices and Q&A that don't amend the tender, superseded versions). The
+   manifest's `role` column says which is which. Retrieval indexes the same roles, so a value you find
    outside them can't be found by extraction either.
 2. Read the addenda in order. A label records the **final** state after all of them.
 3. Note the start time. `minutes` goes in the header.
@@ -27,7 +28,7 @@ All examples below are synthetic.
 - **"None" is `not_stated`.** If the tender explicitly says there is none ("no site visit will
   be held"), label `not_stated` and quote the gist in `note`.
 - **Q&A counts only through an addendum.** An answer counts only if it was issued as, or
-  incorporated by, an addendum.
+  incorporated by, an addendum. A Q&A file or notice that isn't one is tagged `reference`.
 - **A reissued solicitation replaces the original.** Cite the reissue.
 - **Scanned pages still count.** Never label a field `not_stated` because its only source is a
   scanned page. Label what the page says and cite it.
