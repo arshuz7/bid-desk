@@ -95,9 +95,9 @@ values only:
     },
     "closing_at": {
       "status": "found",
-      "value": "2026-11-20T14:00:00-07:00",
+      "value": "2026-11-20T14:00:00-06:00",
       "evidence": [{"file": "addendum-002-example.pdf", "page": 1}],
-      "history": [{"value": "2026-11-13T14:00:00-07:00", "file": "itt-example.pdf"}]
+      "history": [{"value": "2026-11-13T14:00:00-06:00", "file": "itt-example.pdf"}]
     },
     "site_meeting": {
       "status": "found",
@@ -159,13 +159,13 @@ When both are `found`, the value decides:
 | Field | Value type | Counted correct when |
 | --- | --- | --- |
 | Project title | `str` | Normalized match (case, punctuation, whitespace), or any `accept` value |
-| Issuing organization | `str` | Normalized match, any `accept` value, or a match in `evals/aliases.yaml` (for example "Parks Canada Agency" = "Parks Canada") |
+| Issuing organization | `str` | Normalized match, any `accept` value, or a match in `evals/aliases.toml` (for example "Parks Canada Agency" = "Parks Canada") |
 | Tender/reference number | `str` | Exact match after stripping spaces, or any `accept` value |
 | Closing date and time | `AwareDatetime` | Same instant once both are in America/Edmonton |
 | Site meeting | `SiteMeeting` | Date and mandatory flag both match |
 | Project location | `str` | Normalized match or any `accept` value; otherwise the LLM judge decides whether the paraphrase is the same place |
 | Estimated value | `Money` | Both `low` and `high` within $1 |
-| Mandatory certifications | `list[str]` | Same set after alias normalization |
+| Mandatory certifications | `list[str]` | Same set after alias normalization (`evals/aliases.toml`) |
 | Bonding/insurance | `list[BondingItem]` | Same set of (kind, amount, unit) |
 | Evaluation criteria | `EvalCriteria` | Same `basis`, and the same set of criteria (the judge matches wording) with exact weights |
 

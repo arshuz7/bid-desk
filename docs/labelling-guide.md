@@ -49,10 +49,11 @@ firm issues the tender for a town, the town is the issuer.
 Put a short form in `accept`.
 `"value": "5P000-26-9999", "accept": ["26-9999"]`
 
-**Closing date and time.** The final closing after all addenda, with its time zone. Compute it
+**Closing date and time.** The final closing after all addenda, with its time zone. Alberta
+stays on UTC-6 year-round from 2026-03-08, so 2:00 p.m. on a later date is `14:00:00-06:00`. Compute it
 when an addendum only describes the change ("extended by one week"), and cite that addendum.
 For two-stage and qualification tenders, use the closing of the stage this document solicits.
-`"value": "2026-11-20T14:00:00-07:00", "history": [{"value": "2026-11-13T14:00:00-07:00", "file": "itt-example.pdf"}]`
+`"value": "2026-11-20T14:00:00-06:00", "history": [{"value": "2026-11-13T14:00:00-06:00", "file": "itt-example.pdf"}]`
 
 **Site meeting.** With several visits, the earliest. `mandatory` is true if any visit is
 mandatory, and null if the tender doesn't say. Use a date alone when no time is given. "By

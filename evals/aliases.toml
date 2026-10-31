@@ -1,0 +1,11 @@
+# Names that mean the same thing, for the issuing organization and certification scorers.
+# Each entry is: canonical name = [aliases]. Both sides are compared after normalize_text, so
+# case and punctuation don't matter. Add an alias when it recurs across tenders; a one-off
+# alternate belongs in that label's `accept` list instead.
+
+[issuing_org]
+"Parks Canada" = ["Parks Canada Agency", "Agence Parcs Canada"]
+
+[certifications]
+"COR" = ["Certificate of Recognition", "Certificate of Recognition (COR)"]
+"SECOR" = ["Small Employer Certificate of Recognition"]

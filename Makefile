@@ -64,10 +64,12 @@ extract:
 	@echo "make extract is not implemented until story 2.4" >&2
 	@exit 1
 
+PIPELINE ?= baseline
 eval:
-	@echo "make eval is not implemented until story 2.5" >&2
-	@exit 1
+	uv run python -m bidesk.evals.run_extract --labels data/labels/dev --split dev --pipeline $(PIPELINE)
 
+# Story 5.6. Holdout results keyed by tender id go to the holdout directory, never to the
+# committed evals/results/, and EVALS.md gets totals only: holdout IDs never enter the repo.
 eval-holdout:
 	@echo "make eval-holdout is not implemented until story 5.6" >&2
 	@exit 1

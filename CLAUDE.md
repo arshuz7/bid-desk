@@ -66,7 +66,8 @@ Defined in the Makefile once story 1.3 is done:
   not in the gitignored `data/non-holdout.txt`
 - `make search TENDER=<id> Q="question"`: hybrid search over one ingested tender (same allowlist)
 - `make extract TENDER=<id>`: run extraction on one tender
-- `make eval`: dev extraction and Ask evals; writes `evals/results/` and appends to `EVALS.md`
+- `make eval` (`PIPELINE=baseline`): score each dev tender's latest extract run; writes
+  `evals/results/` and appends to `EVALS.md` (Ask eval joins in 3.2). Use the `run-eval-and-log` skill
 - `make eval-holdout`: developer only
 
 ## Coding rules

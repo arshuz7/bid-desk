@@ -221,3 +221,18 @@ Decided after a three-analyst design review on 2026-10-10. The schema is in
 | `make search` goes through the same dev allowlist as `make ingest` | `make eval-holdout` puts holdout tenders into the same database, and the deny rules don't cover database rows. Every command that reads tender content uses the guard |
 | Asking about a tender's own bid number is a weak query | Its bid number is on nearly every page header, so it matches everything. Noted from the real run |
 
+## Scorers, story 2.5 (2026-10-30)
+
+| Decision | Why |
+| --- | --- |
+| No LLM judge yet: location paraphrases and renamed criteria score **wrong**, counted separately as "needs judge" | Accuracy stays "over all 10 fields". The judge comes with the verifier (4.1); then re-score the stored baseline runs rather than comparing across scorer versions |
+| `SCORER_VERSION` goes into every results file and EVALS.md row | Rows are comparable only at the same scorer version |
+| Aliases live in `evals/aliases.toml` (stdlib `tomllib`), normalized when loaded | No PyYAML for one file; "Certificate of Recognition (COR)" and "COR" meet after normalizing |
+| `normalize_text` (`bidesk/text.py`) drops punctuation but keeps numbers: only a thousands comma goes (1,000), while a decimal point, a decimal comma ("1,5" in French) and a list comma ("1,2") stay | It's the one normalization function, shared with grounding (4.1). Dropping every point would make "1.5%" equal "15%" and let a fake quote pass grounding |
+| Reference numbers match exactly after removing whitespace, case-sensitively | As evals.md says; a case variant goes in `accept` |
+| The eval scores each tender's latest **finished** run (succeeded or failed) of one pipeline. A failed run scores every field as failed; no run is an error; `running` runs are ignored | A failed run is what a user would see. A run left `running` by a crash can never finish, so it must not hide the one before it. A tender is never silently skipped |
+| An eval refuses runs from different code or prompt versions unless `--allow-mixed`; a run that failed before any model call (no prompt spans) only has to match on git SHA, and a mixed row says "mixed" | Otherwise re-extracting 5 of 12 tenders with a new prompt would credit it with the old prompt's results. Results record every run id, git SHA and prompt version |
+| Only the 10 labelled fields are scored; `tender_contact` and predicted values never reach the results file | Accuracy is over the labelled fields, and results are committed: no contact details in committed files |
+| Citation accuracy is "grounded and correct" over predicted-found fields, shown as "n/a until grounding (4.1)" until fields carry `signals.grounded`. Catch rate and review load are "n/a" until runs carry confidence scores | The baseline's placeholder review state would otherwise look like a real 0% measurement in Gate 1 |
+| No `eval_runs` row yet | `runs.eval_run_id` can't change after a run is written, so a row made afterwards could never link to its runs. It comes in 2.6, when `make eval` creates the runs under it |
+| Holdout (5.6): per-tender results go to the holdout directory, never to the committed `evals/results/`, and EVALS.md gets totals only; the runner refuses `--split holdout` until then | Holdout IDs never enter the repo |
